@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // For SQLite (development): provider = "sqlite", url = "file:./dev.db"
+  // For PostgreSQL (production): provider = "postgresql", url = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ── Store ──────────────────────────────────────────────────────────────
+model Store {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  rooms     Room[]
+  machines  Machine[]
+  staff     Staff[]
+
+  residents         Resident[]
+  monitoringRecords MonitoringRecord[]
+  appointments      Appointment[]
+  verifications     Verification[]
+  robotSessions     RobotSession[]
+}
+
+// ── Room ───────────────────────────────────────────────────────────────
+model Room {
+  id        String   @id @default(cuid())
+  name      String
+  storeId   String
+  capacity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  store        Store         @relation(fields: [storeId], references: [id])
+  appointments Appointment[]
+
+  machines Machine[]
+}
+
+// ── Machine ────────────────────────────────────────────────────────────
+model Machine {
+  id        String   @id @default(cuid())
+  name      String
+  storeId   String
+  roomId    String?
+  status    String   @default("available")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  store        Store         @relation(fields: [storeId], references: [id])
+  room         Room?         @relation(fields: [roomId], references: [id])
+  appointments Appointment[]
+}
+
+// ── Staff ──────────────────────────────────────────────────────────────
+model Staff {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  phone     String   @unique
+  name      String
+  role      String   @default("staff")
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  store        Store         @relation(fields: [storeId], references: [id])
+  appointments Appointment[]
+}
+
+// ── Resident ───────────────────────────────────────────────────────────
+model Resident {
+  id                String   @id @default(cuid())
+  name              String
+  phone             String   @unique
+  wechatOpenid      String?  @unique
+  registrationSource String  @default("walk-in")
+  storeId           String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  store             Store              @relation(fields: [storeId], references: [id])
+  monitoringRecords MonitoringRecord[]
+  appointments      Appointment[]
+}
+
+// ── MonitoringRecord ───────────────────────────────────────────────────
+model MonitoringRecord {
+  id               String   @id @default(cuid())
+  residentId       String
+  score            Int
+  monitoringDate   DateTime
+  constitutionType String?
+  storeId          String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  resident Resident @relation(fields: [residentId], references: [id])
+  store     Store    @relation(fields: [storeId], references: [id])
+}
+
+// ── Appointment ────────────────────────────────────────────────────────
+model Appointment {
+  id          String    @id @default(cuid())
+  residentId  String
+  staffId     String?
+  roomId      String?
+  machineId   String?
+  scheduledAt DateTime
+  status      String    @default("booked")
+  noShowCount Int       @default(0)
+  storeId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  resident       Resident       @relation(fields: [residentId], references: [id])
+  staff          Staff?         @relation(fields: [staffId], references: [id])
+  room           Room?          @relation(fields: [roomId], references: [id])
+  machine        Machine?       @relation(fields: [machineId], references: [id])
+  store          Store          @relation(fields: [storeId], references: [id])
+  verification   Verification?
+  robotSessions  RobotSession[]
+}
+
+// ── Verification ───────────────────────────────────────────────────────
+model Verification {
+  id         String   @id @default(cuid())
+  appointmentId String @unique
+  verifiedBy String
+  verifiedAt DateTime
+  storeId    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  store       Store       @relation(fields: [storeId], references: [id])
+}
+
+// ── RobotSession ───────────────────────────────────────────────────────
+model RobotSession {
+  id           String    @id @default(cuid())
+  appointmentId String
+  routine      String?
+  status       String    @default("active")
+  startedAt    DateTime
+  endedAt      DateTime?
+  storeId      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  store       Store       @relation(fields: [storeId], references: [id])
+}

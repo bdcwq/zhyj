@@ -1,0 +1,23 @@
+{
+  "name": "@zhyj/db",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "prisma:validate": "prisma validate",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.3.1",
+    "bcryptjs": "^2.4.3",
+    "prisma": "^6.3.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
