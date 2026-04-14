@@ -120,7 +120,7 @@ export const createRobotSessionSchema = z.object({
 });
 
 export const updateRobotSessionSchema = z.object({
-  status: z.enum(["completed", "paused"]).optional(),
+  status: z.enum(["completed", "paused", "in_progress"]).optional(),
   routine: z.string().optional(),
 });
 
@@ -135,3 +135,38 @@ export const robotSessionListQuerySchema = z.object({
 export type CreateRobotSessionInput = z.infer<typeof createRobotSessionSchema>;
 export type UpdateRobotSessionInput = z.infer<typeof updateRobotSessionSchema>;
 export type RobotSessionListQueryInput = z.infer<typeof robotSessionListQuerySchema>;
+
+// ── Statistics ──
+export const statisticsOverviewQuerySchema = z.object({
+  storeId: z.string().min(1, "门店ID不能为空"),
+  date: z.string().date("请输入有效的日期").optional(),
+});
+
+export type StatisticsOverviewQueryInput = z.infer<typeof statisticsOverviewQuerySchema>;
+
+export const statisticsPeriodQuerySchema = z
+  .object({
+    storeId: z.string().min(1, "门店ID不能为空"),
+    period: z.enum(["daily", "weekly", "monthly"]),
+    dateFrom: z.string().date("请输入有效的日期").optional(),
+    dateTo: z.string().date("请输入有效的日期").optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.dateFrom || !data.dateTo) return true;
+      return data.dateFrom <= data.dateTo;
+    },
+    { message: "开始日期不能晚于结束日期", path: ["dateFrom"] }
+  )
+  .refine(
+    (data) => {
+      if (!data.dateFrom || !data.dateTo) return true;
+      const from = new Date(data.dateFrom);
+      const to = new Date(data.dateTo);
+      const diffDays = (to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24);
+      return diffDays <= 365;
+    },
+    { message: "日期范围不能超过365天", path: ["dateTo"] }
+  );
+
+export type StatisticsPeriodQueryInput = z.infer<typeof statisticsPeriodQuerySchema>;

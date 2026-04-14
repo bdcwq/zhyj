@@ -133,3 +133,21 @@ export const ROBOT_SESSION_ERRORS = {
 } as const;
 
 export type RobotSessionErrorCode = (typeof ROBOT_SESSION_ERRORS)[keyof typeof ROBOT_SESSION_ERRORS];
+
+// ── Statistics ──
+export const STATISTICS_PERIODS = {
+  DAILY: "daily",
+  WEEKLY: "weekly",
+  MONTHLY: "monthly",
+} as const;
+
+export type StatisticsPeriod = (typeof STATISTICS_PERIODS)[keyof typeof STATISTICS_PERIODS];
+
+export const MAX_DATE_RANGE_DAYS = 365;
+
+export const STAT_ERRORS = {
+  INVALID_DATE_RANGE: "STAT_001",
+  QUERY_FAILED: "STAT_002",
+} as const;
+
+export type StatErrorCode = (typeof STAT_ERRORS)[keyof typeof STAT_ERRORS];

@@ -116,11 +116,3 @@ function goToMonitoring() {
   color: #999;
 }
 </style>
-0rpx;
-}
-
-.feature-desc {
-  font-size: 24rpx;
-  color: #999;
-}
-</style>
