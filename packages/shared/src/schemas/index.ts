@@ -248,3 +248,10 @@ export const campaignListQuerySchema = z.object({
 });
 
 export type CampaignListQueryInput = z.infer<typeof campaignListQuerySchema>;
+
+// ── Switch store ──
+export const switchStoreSchema = z.object({
+  storeId: z.string().min(1, "门店ID不能为空"),
+});
+
+export type SwitchStoreInput = z.infer<typeof switchStoreSchema>;

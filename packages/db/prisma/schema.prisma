@@ -21,7 +21,7 @@ model Store {
 
   rooms     Room[]
   machines  Machine[]
-  staff     Staff[]
+  staffStores StaffStore[]
 
   residents         Resident[]
   monitoringRecords MonitoringRecord[]
@@ -73,13 +73,26 @@ model Staff {
   phone     String   @unique
   name      String
   role      String   @default("staff")
-  storeId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
-  store        Store         @relation(fields: [storeId], references: [id])
+  staffStores  StaffStore[]
   appointments Appointment[]
+}
+
+// ── StaffStore (junction) ─────────────────────────────────────────────
+model StaffStore {
+  id        String   @id @default(cuid())
+  staffId   String
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, storeId])
 }
 
 // ── Resident ───────────────────────────────────────────────────────────

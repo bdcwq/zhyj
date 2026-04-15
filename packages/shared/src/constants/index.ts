@@ -193,3 +193,12 @@ export const NOTIFICATION_ERRORS = {
 } as const;
 
 export type NotificationErrorCode = (typeof NOTIFICATION_ERRORS)[keyof typeof NOTIFICATION_ERRORS];
+
+// ── Store switch error codes ──
+export const STORE_SWITCH_ERRORS = {
+  INVALID_STORE: "STORE_SWITCH_001",
+  STORE_NOT_ASSIGNED: "STORE_SWITCH_002",
+  SWITCH_FAILED: "STORE_SWITCH_003",
+} as const;
+
+export type StoreSwitchErrorCode = (typeof STORE_SWITCH_ERRORS)[keyof typeof STORE_SWITCH_ERRORS];

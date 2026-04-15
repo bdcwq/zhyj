@@ -40,8 +40,20 @@ export interface Staff extends Timestamps {
   phone: string;
   name: string;
   role: string;
-  storeId: string;
   deletedAt?: Date | null;
+}
+
+// ── StaffStore (junction) ──
+export interface StaffStore extends Timestamps {
+  id: string;
+  staffId: string;
+  storeId: string;
+}
+
+// ── Store summary (used in login response & store switcher) ──
+export interface StoreSummary {
+  id: string;
+  name: string;
 }
 
 // ── Resident ──
@@ -120,5 +132,6 @@ export interface AuthTokenResponse {
     phone: string;
     name: string;
     role?: string;
+    stores?: StoreSummary[];
   };
 }

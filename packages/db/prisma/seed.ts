@@ -23,30 +23,40 @@ async function main() {
 
   // ── Clean existing data (idempotent) ──
   console.log("🧹 Cleaning existing data...");
+  await prisma.campaignParticipation.deleteMany();
+  await prisma.campaign.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.robotSession.deleteMany();
   await prisma.verification.deleteMany();
   await prisma.monitoringRecord.deleteMany();
   await prisma.appointment.deleteMany();
   await prisma.resident.deleteMany();
+  await prisma.staffStore.deleteMany();
   await prisma.staff.deleteMany();
   await prisma.machine.deleteMany();
   await prisma.room.deleteMany();
   await prisma.store.deleteMany();
 
-  // ── Store ──
-  const store = await prisma.store.create({
+  // ── Stores ──
+  const storeA = await prisma.store.create({
     data: {
-      name: "测试健康管理中心",
-      address: "测试地址",
+      name: "测试健康管理中心A",
+      address: "测试地址A",
     },
   });
-  console.log(`✅ Store created: ${store.name}`);
+  const storeB = await prisma.store.create({
+    data: {
+      name: "测试健康管理中心B",
+      address: "测试地址B",
+    },
+  });
+  console.log(`✅ Stores created: ${storeA.name}, ${storeB.name}`);
 
   // ── Rooms ──
   const rooms = await Promise.all(
     ["艾灸室1", "艾灸室2", "艾灸室3"].map((name) =>
       prisma.room.create({
-        data: { name, storeId: store.id, capacity: 2 },
+        data: { name, storeId: storeA.id, capacity: 2 },
       })
     )
   );
@@ -58,7 +68,7 @@ async function main() {
       prisma.machine.create({
         data: {
           name: `艾灸机器人${i + 1}`,
-          storeId: store.id,
+          storeId: storeA.id,
           status: "available",
         },
       })
@@ -77,7 +87,6 @@ async function main() {
       phone: "13900000001",
       name: "管理员",
       role: "admin",
-      storeId: store.id,
     },
   });
 
@@ -88,10 +97,19 @@ async function main() {
       phone: "13900000002",
       name: "员工一",
       role: "staff",
-      storeId: store.id,
     },
   });
   console.log(`✅ 2 staff created (admin, staff)`);
+
+  // ── StaffStore assignments ──
+  await prisma.staffStore.createMany({
+    data: [
+      { staffId: staffAdmin.id, storeId: storeA.id },
+      { staffId: staffAdmin.id, storeId: storeB.id },
+      { staffId: staffMember.id, storeId: storeA.id },
+    ],
+  });
+  console.log(`✅ StaffStore assignments created (admin→A+B, staff→A)`);
 
   // ── Residents ──
   const residents = await Promise.all(
@@ -101,7 +119,7 @@ async function main() {
           name,
           phone: `1380013800${(i + 1).toString().padStart(2, "0")}`,
           registrationSource: randomItem(REGISTRATION_SOURCES),
-          storeId: store.id,
+          storeId: storeA.id,
         },
       })
     )
@@ -122,7 +140,7 @@ async function main() {
           score: randomScore(),
           monitoringDate: new Date(Date.now() - daysAgo * 86400000),
           constitutionType: randomItem(CONSTITUTION_TYPES),
-          storeId: store.id,
+          storeId: storeA.id,
         },
       });
       monitoringCount++;
@@ -131,12 +149,12 @@ async function main() {
   console.log(`✅ ${monitoringCount} monitoring records created`);
 
   console.log("\n🎉 Seed complete!");
-  console.log(`   Store: ${store.name}`);
-  console.log(`   Rooms: ${rooms.length}`);
-  console.log(`   Machines: ${machines.length}`);
-  console.log(`   Staff: ${staffAdmin.username} (${staffAdmin.role}), ${staffMember.username} (${staffMember.role})`);
-  console.log(`   Residents: ${residents.length}`);
-  console.log(`   Monitoring Records: ${monitoringCount}`);
+  console.log(`   Stores: ${storeA.name}, ${storeB.name}`);
+  console.log(`   Rooms: ${rooms.length} (store A)`);
+  console.log(`   Machines: ${machines.length} (store A)`);
+  console.log(`   Staff: ${staffAdmin.username} (${staffAdmin.role}) → stores A+B, ${staffMember.username} (${staffMember.role}) → store A`);
+  console.log(`   Residents: ${residents.length} (store A)`);
+  console.log(`   Monitoring Records: ${monitoringCount} (store A)`);
 }
 
 main()
