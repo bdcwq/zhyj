@@ -151,3 +151,45 @@ export const STAT_ERRORS = {
 } as const;
 
 export type StatErrorCode = (typeof STAT_ERRORS)[keyof typeof STAT_ERRORS];
+
+// ── Campaign error codes ──
+export const CAMPAIGN_ERRORS = {
+  VALIDATION_ERROR: "CAMPAIGN_001",
+  NOT_FOUND: "CAMPAIGN_002",
+  CREATE_FAILED: "CAMPAIGN_003",
+  UPDATE_FAILED: "CAMPAIGN_004",
+  DELETE_FAILED: "CAMPAIGN_005",
+  ALREADY_PARTICIPATING: "CAMPAIGN_006",
+  NOT_ACTIVE: "CAMPAIGN_007",
+  PARTICIPATE_FAILED: "CAMPAIGN_008",
+} as const;
+
+export type CampaignErrorCode = (typeof CAMPAIGN_ERRORS)[keyof typeof CAMPAIGN_ERRORS];
+
+// ── Campaign statuses ──
+export const CAMPAIGN_STATUS = {
+  ACTIVE: "active",
+  PAUSED: "paused",
+  EXPIRED: "expired",
+} as const;
+
+export type CampaignStatus = (typeof CAMPAIGN_STATUS)[keyof typeof CAMPAIGN_STATUS];
+
+// ── Campaign participation statuses ──
+export const CAMPAIGN_PARTICIPATION_STATUS = {
+  PENDING: "pending",
+  COMPLETED: "completed",
+  EXPIRED: "expired",
+} as const;
+
+export type CampaignParticipationStatus = (typeof CAMPAIGN_PARTICIPATION_STATUS)[keyof typeof CAMPAIGN_PARTICIPATION_STATUS];
+
+// ── Notification error codes ──
+export const NOTIFICATION_ERRORS = {
+  INVALID_RECIPIENT: "NOTIFICATION_001",
+  SEND_FAILED: "NOTIFICATION_002",
+  NOT_FOUND: "NOTIFICATION_003",
+  CHANNEL_ERROR: "NOTIFICATION_004",
+} as const;
+
+export type NotificationErrorCode = (typeof NOTIFICATION_ERRORS)[keyof typeof NOTIFICATION_ERRORS];

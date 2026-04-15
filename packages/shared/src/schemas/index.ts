@@ -170,3 +170,81 @@ export const statisticsPeriodQuerySchema = z
   );
 
 export type StatisticsPeriodQueryInput = z.infer<typeof statisticsPeriodQuerySchema>;
+
+// ── Notification ──
+export const notificationTypeSchema = z.enum([
+  "appointment_reminder",
+  "no_show_warning",
+  "campaign_reward",
+  "custom",
+]);
+
+export type NotificationType = z.infer<typeof notificationTypeSchema>;
+
+export const sendNotificationSchema = z.object({
+  recipientType: z.enum(["staff", "resident"], { message: "接收人类型无效" }),
+  recipientId: z.string().min(1, "接收人ID不能为空"),
+  type: notificationTypeSchema,
+  title: z.string().min(1, "通知标题不能为空").max(100, "标题过长"),
+  content: z.string().min(1, "通知内容不能为空").max(1000, "内容过长"),
+  channel: z.enum(["console", "wechat"]).optional().default("console"),
+});
+
+export type SendNotificationInput = z.infer<typeof sendNotificationSchema>;
+
+export const notificationListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  recipientType: z.string().optional(),
+  type: z.string().optional(),
+  status: z.string().optional(),
+});
+
+export type NotificationListQueryInput = z.infer<typeof notificationListQuerySchema>;
+
+// ── Campaign schemas ──
+
+export const campaignRulesSchema = z.object({
+  bonusAppointments: z.number().int().min(1).default(1),
+  rewardCondition: z.enum(["first_appointment_completed"]).default("first_appointment_completed"),
+});
+
+export type CampaignRules = z.infer<typeof campaignRulesSchema>;
+
+export const createCampaignSchema = z.object({
+  name: z.string().min(1, "活动名称不能为空").max(100, "名称过长"),
+  type: z.enum(["referral", "promotion"]).default("referral"),
+  rules: campaignRulesSchema,
+  startDate: z.string().min(1, "开始日期不能为空"),
+  endDate: z.string().min(1, "结束日期不能为空"),
+  priority: z.number().int().min(0).default(0),
+});
+
+export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
+
+export const updateCampaignSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  type: z.enum(["referral", "promotion"]).optional(),
+  rules: campaignRulesSchema.optional(),
+  startDate: z.string().min(1).optional(),
+  endDate: z.string().min(1).optional(),
+  priority: z.number().int().min(0).optional(),
+  status: z.enum(["active", "paused"]).optional(),
+});
+
+export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
+
+export const participateCampaignSchema = z.object({
+  refereeId: z.string().min(1, "被推荐人ID不能为空"),
+});
+
+export type ParticipateCampaignInput = z.infer<typeof participateCampaignSchema>;
+
+export const campaignListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  status: z.string().optional(),
+  type: z.string().optional(),
+});
+
+export type CampaignListQueryInput = z.infer<typeof campaignListQuerySchema>;

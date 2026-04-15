@@ -28,6 +28,9 @@ model Store {
   appointments      Appointment[]
   verifications     Verification[]
   robotSessions     RobotSession[]
+  notifications     Notification[]
+  campaigns         Campaign[]
+  campaignParticipations CampaignParticipation[]
 }
 
 // ── Room ───────────────────────────────────────────────────────────────
@@ -164,4 +167,60 @@ model RobotSession {
 
   appointment Appointment @relation(fields: [appointmentId], references: [id])
   store       Store       @relation(fields: [storeId], references: [id])
+}
+
+// ── Notification ───────────────────────────────────────────────────────
+model Notification {
+  id            String    @id @default(cuid())
+  type          String    // appointment_reminder, campaign_reward, no_show_warning, custom
+  recipientType String    // staff, resident
+  recipientId   String
+  title         String
+  content       String
+  status        String    @default("pending") // pending, sent, failed
+  channel       String    @default("console") // console, wechat
+  sentAt        DateTime?
+  error         String?
+  storeId       String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id])
+}
+
+// ── Campaign ───────────────────────────────────────────────────────────
+model Campaign {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("referral") // referral, promotion, etc.
+  rules     String   // JSON string: { bonusAppointments: number, rewardCondition: string }
+  startDate DateTime
+  endDate   DateTime
+  priority  Int      @default(0) // higher = higher priority
+  status    String   @default("active") // active, paused, expired
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  store Store @relation(fields: [storeId], references: [id])
+  participations CampaignParticipation[]
+}
+
+// ── CampaignParticipation ──────────────────────────────────────────────
+model CampaignParticipation {
+  id           String    @id @default(cuid())
+  campaignId   String
+  referrerId   String    // the resident who referred
+  refereeId    String    // the resident who was referred
+  status       String    @default("pending") // pending, completed, expired
+  completedAt  DateTime?
+  storeId      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  store    Store    @relation(fields: [storeId], references: [id])
+
+  @@unique([campaignId, refereeId])
 }
