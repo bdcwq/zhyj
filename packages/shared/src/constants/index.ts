@@ -202,3 +202,10 @@ export const STORE_SWITCH_ERRORS = {
 } as const;
 
 export type StoreSwitchErrorCode = (typeof STORE_SWITCH_ERRORS)[keyof typeof STORE_SWITCH_ERRORS];
+
+// ── Rate limit error codes ──
+export const RATE_LIMIT_ERRORS = {
+  TOO_MANY_REQUESTS: "RATE_LIMIT_001",
+} as const;
+
+export type RateLimitErrorCode = (typeof RATE_LIMIT_ERRORS)[keyof typeof RATE_LIMIT_ERRORS];

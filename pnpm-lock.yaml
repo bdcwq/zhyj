@@ -70,6 +70,9 @@ importers:
       '@zhyj/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@zhyj/redis':
+        specifier: workspace:*
+        version: link:../../packages/redis
       '@zhyj/shared':
         specifier: workspace:*
         version: link:../../packages/shared
