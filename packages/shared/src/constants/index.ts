@@ -209,3 +209,17 @@ export const RATE_LIMIT_ERRORS = {
 } as const;
 
 export type RateLimitErrorCode = (typeof RATE_LIMIT_ERRORS)[keyof typeof RATE_LIMIT_ERRORS];
+
+// ── SMS error codes ──
+export const SMS_ERRORS = {
+  SEND_FAILED: "SMS_001",
+  CODE_EXPIRED: "SMS_002",
+  CODE_INVALID: "SMS_003",
+} as const;
+
+export type SmsErrorCode = (typeof SMS_ERRORS)[keyof typeof SMS_ERRORS];
+
+// ── SMS configuration ──
+export const SMS_CODE_TTL = Number(process.env.SMS_CODE_TTL) || 300;
+
+export const SMS_PROVIDER = (process.env.SMS_PROVIDER as "aliyun" | "mock") || "mock";
