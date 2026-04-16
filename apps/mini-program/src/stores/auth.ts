@@ -33,8 +33,16 @@ export const useAuthStore = defineStore('auth', () => {
     return result
   }
 
-  /** Clear auth state and redirect to login page. */
-  function logout() {
+  /** Clear auth state, notify server, and redirect to login page. */
+  async function logout() {
+    try {
+      const token = uni.getStorageSync('auth-token')
+      if (token) {
+        await request({ url: '/auth/logout', method: 'POST', showErrorToast: false })
+      }
+    } catch {
+      // Best-effort server logout — proceed with local cleanup regardless
+    }
     token.value = null
     resident.value = null
     clearAuth()
