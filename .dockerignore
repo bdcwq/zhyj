@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Environment files (secrets must enter via docker-compose environment, never baked)
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+.next
+dist
+*.tsbuildinfo
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+
+# GSD project management
+.gsd
+
+# Development databases (SQLite)
+*.db
+*.db-journal
+
+# Test artifacts
+coverage
+.nyc_output
+
+# Misc
+*.md
+LICENSE
