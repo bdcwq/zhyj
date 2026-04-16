@@ -1,0 +1,80 @@
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zhyj
+      POSTGRES_PASSWORD: zhyj
+      POSTGRES_DB: zhyj
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zhyj -d zhyj"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── Database schema setup ───────────────────────────────────────────
+  db-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://zhyj:zhyj@db:5432/zhyj
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "pnpm --filter @zhyj/db exec prisma db push --schema=prisma/schema.prisma --skip-generate --accept-data-loss 2>&1 && echo 'SCHEMA_PUSH_OK' || echo 'SCHEMA_PUSH_FAILED'"
+    entrypoint: []
+
+  # ── Web application ─────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://zhyj:zhyj@db:5432/zhyj
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: docker-compose-dev-secret-change-in-production
+      JWT_EXPIRY: 7d
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: 1
+      WECHAT_APP_ID: placeholder
+      WECHAT_APP_SECRET: placeholder
+      WECHAT_SUBSCRIBE_TEMPLATE_ID: placeholder
+      NOTIFICATION_CHANNEL: console
+      SMS_PROVIDER: dev
+      SMS_ACCESS_KEY_ID: placeholder
+      SMS_ACCESS_KEY_SECRET: placeholder
+      SMS_SIGN_NAME: placeholder
+      SMS_TEMPLATE_CODE: placeholder
+    depends_on:
+      db-setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:

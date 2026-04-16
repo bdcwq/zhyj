@@ -20,7 +20,9 @@ RUN pnpm install --frozen-lockfile --prod
 # Generate Prisma client, install all deps (including dev), then build the
 # Next.js app in standalone mode. The standalone output produces a minimal
 # server that includes only the required node_modules.
-FROM deps AS builder
+FROM node:20-alpine AS builder
+
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 WORKDIR /app
 
@@ -41,7 +43,8 @@ COPY apps/web/ apps/web/
 COPY turbo.json ./
 
 # Generate Prisma client (needed at build time for type generation)
-RUN npx prisma generate --schema=packages/db/prisma/schema.prisma
+# Use pnpm exec to ensure the locked version (6.x) is used, not latest via npx
+RUN pnpm --filter @zhyj/db exec prisma generate --schema=prisma/schema.prisma
 
 # Build the Next.js app in standalone mode
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -58,21 +61,22 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-WORKDIR /app
+# Copy standalone server output from the builder (preserves monorepo structure)
+COPY --from=builder /app/apps/web/.next/standalone /app
 
-# Copy standalone server output from the builder
-COPY --from=builder /app/apps/web/.next/standalone ./
+# Copy static assets (public directory)
+RUN mkdir -p /app/apps/web/public
 
-# Copy static assets (if any exist in public/)
-COPY --from=builder /app/apps/web/public ./public 2>/dev/null || true
-
-# Copy Prisma engine for runtime queries
-COPY --from=builder /app/packages/db/prisma ./packages/db/prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy Prisma engine and client for runtime queries
+# Prisma generates into packages/db/node_modules/.prisma in pnpm workspace
+COPY --from=builder /app/packages/db/node_modules/.prisma /app/apps/web/node_modules/.prisma
+COPY --from=builder /app/packages/db/node_modules/@prisma /app/apps/web/node_modules/@prisma
+COPY --from=builder /app/packages/db/prisma /app/packages/db/prisma
 
 # Ensure the nextjs user owns the app directory
 RUN chown -R nextjs:nodejs /app
+
+WORKDIR /app/apps/web
 
 USER nextjs
 
