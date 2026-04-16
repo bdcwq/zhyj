@@ -255,3 +255,23 @@ export const switchStoreSchema = z.object({
 });
 
 export type SwitchStoreInput = z.infer<typeof switchStoreSchema>;
+
+// ── Admin staff assignment ──
+export const assignStoreSchema = z.object({
+  storeId: z.string().min(1, "门店ID不能为空"),
+});
+
+export type AssignStoreInput = z.infer<typeof assignStoreSchema>;
+
+export const removeStoreSchema = z.object({
+  storeId: z.string().min(1, "门店ID不能为空"),
+});
+
+export type RemoveStoreInput = z.infer<typeof removeStoreSchema>;
+
+export const staffListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export type StaffListQueryInput = z.infer<typeof staffListQuerySchema>;

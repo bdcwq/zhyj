@@ -219,6 +219,20 @@ export const SMS_ERRORS = {
 
 export type SmsErrorCode = (typeof SMS_ERRORS)[keyof typeof SMS_ERRORS];
 
+// ── Staff assignment error codes ──
+export const STAFF_ASSIGN_ERRORS = {
+  FORBIDDEN: "STAFF_ASSIGN_001",
+  STAFF_NOT_FOUND: "STAFF_ASSIGN_002",
+  STORE_NOT_FOUND: "STAFF_ASSIGN_003",
+  ASSIGN_FAILED: "STAFF_ASSIGN_004",
+  REMOVE_FAILED: "STAFF_ASSIGN_005",
+  ALREADY_ASSIGNED: "STAFF_ASSIGN_006",
+  NOT_ASSIGNED: "STAFF_ASSIGN_007",
+  INVALID_PARAMS: "STAFF_ASSIGN_008",
+} as const;
+
+export type StaffAssignErrorCode = (typeof STAFF_ASSIGN_ERRORS)[keyof typeof STAFF_ASSIGN_ERRORS];
+
 // ── SMS configuration ──
 export const SMS_CODE_TTL = Number(process.env.SMS_CODE_TTL) || 300;
 
