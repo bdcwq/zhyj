@@ -79,6 +79,7 @@ async function main() {
   // ── Staff ──
   const adminPasswordHash = await bcrypt.hash("admin123", 10);
   const staffPasswordHash = await bcrypt.hash("staff123", 10);
+  const managerPasswordHash = await bcrypt.hash("manager123", 10);
 
   const staffAdmin = await prisma.staff.create({
     data: {
@@ -87,6 +88,16 @@ async function main() {
       phone: "13900000001",
       name: "管理员",
       role: "admin",
+    },
+  });
+
+  const staffManager = await prisma.staff.create({
+    data: {
+      username: "manager",
+      password: managerPasswordHash,
+      phone: "13900000003",
+      name: "店长",
+      role: "store_manager",
     },
   });
 
@@ -99,17 +110,18 @@ async function main() {
       role: "staff",
     },
   });
-  console.log(`✅ 2 staff created (admin, staff)`);
+  console.log(`✅ 3 staff created (admin, manager, staff)`);
 
   // ── StaffStore assignments ──
   await prisma.staffStore.createMany({
     data: [
       { staffId: staffAdmin.id, storeId: storeA.id },
       { staffId: staffAdmin.id, storeId: storeB.id },
+      { staffId: staffManager.id, storeId: storeA.id },
       { staffId: staffMember.id, storeId: storeA.id },
     ],
   });
-  console.log(`✅ StaffStore assignments created (admin→A+B, staff→A)`);
+  console.log(`✅ StaffStore assignments created (admin→A+B, manager→A, staff→A)`);
 
   // ── Residents ──
   const residents = await Promise.all(
@@ -152,7 +164,7 @@ async function main() {
   console.log(`   Stores: ${storeA.name}, ${storeB.name}`);
   console.log(`   Rooms: ${rooms.length} (store A)`);
   console.log(`   Machines: ${machines.length} (store A)`);
-  console.log(`   Staff: ${staffAdmin.username} (${staffAdmin.role}) → stores A+B, ${staffMember.username} (${staffMember.role}) → store A`);
+  console.log(`   Staff: ${staffAdmin.username} (${staffAdmin.role}) → stores A+B, ${staffManager.username} (${staffManager.role}) → store A, ${staffMember.username} (${staffMember.role}) → store A`);
   console.log(`   Residents: ${residents.length} (store A)`);
   console.log(`   Monitoring Records: ${monitoringCount} (store A)`);
 }

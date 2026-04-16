@@ -1,10 +1,25 @@
 // ── Staff roles ──
 export const STAFF_ROLES = {
   ADMIN: "admin",
+  STORE_MANAGER: "store_manager",
   STAFF: "staff",
 } as const;
 
 export type StaffRole = (typeof STAFF_ROLES)[keyof typeof STAFF_ROLES];
+
+// ── Permission error codes ──
+export const PERMISSION_ERRORS = {
+  FORBIDDEN: "PERMISSION_001",
+} as const;
+export type PermissionErrorCode = (typeof PERMISSION_ERRORS)[keyof typeof PERMISSION_ERRORS];
+
+// ── Role access levels ──
+export const ROLE_ACCESS_LEVELS = {
+  admin: ["management", "business"],
+  store_manager: ["management", "business"],
+  staff: ["business"],
+} as const;
+export type AccessLevel = "management" | "business";
 
 // ── Appointment statuses ──
 export const APPOINTMENT_STATUS = {
