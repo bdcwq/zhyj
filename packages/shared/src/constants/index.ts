@@ -1,25 +1,10 @@
 // ── Staff roles ──
 export const STAFF_ROLES = {
   ADMIN: "admin",
-  STORE_MANAGER: "store_manager",
   STAFF: "staff",
 } as const;
 
 export type StaffRole = (typeof STAFF_ROLES)[keyof typeof STAFF_ROLES];
-
-// ── Permission error codes ──
-export const PERMISSION_ERRORS = {
-  FORBIDDEN: "PERMISSION_001",
-} as const;
-export type PermissionErrorCode = (typeof PERMISSION_ERRORS)[keyof typeof PERMISSION_ERRORS];
-
-// ── Role access levels ──
-export const ROLE_ACCESS_LEVELS = {
-  admin: ["management", "business"],
-  store_manager: ["management", "business"],
-  staff: ["business"],
-} as const;
-export type AccessLevel = "management" | "business";
 
 // ── Appointment statuses ──
 export const APPOINTMENT_STATUS = {
@@ -217,83 +202,3 @@ export const STORE_SWITCH_ERRORS = {
 } as const;
 
 export type StoreSwitchErrorCode = (typeof STORE_SWITCH_ERRORS)[keyof typeof STORE_SWITCH_ERRORS];
-
-// ── Rate limit error codes ──
-export const RATE_LIMIT_ERRORS = {
-  TOO_MANY_REQUESTS: "RATE_LIMIT_001",
-} as const;
-
-export type RateLimitErrorCode = (typeof RATE_LIMIT_ERRORS)[keyof typeof RATE_LIMIT_ERRORS];
-
-// ── SMS error codes ──
-export const SMS_ERRORS = {
-  SEND_FAILED: "SMS_001",
-  CODE_EXPIRED: "SMS_002",
-  CODE_INVALID: "SMS_003",
-} as const;
-
-export type SmsErrorCode = (typeof SMS_ERRORS)[keyof typeof SMS_ERRORS];
-
-// ── Staff assignment error codes ──
-export const STAFF_ASSIGN_ERRORS = {
-  FORBIDDEN: "STAFF_ASSIGN_001",
-  STAFF_NOT_FOUND: "STAFF_ASSIGN_002",
-  STORE_NOT_FOUND: "STAFF_ASSIGN_003",
-  ASSIGN_FAILED: "STAFF_ASSIGN_004",
-  REMOVE_FAILED: "STAFF_ASSIGN_005",
-  ALREADY_ASSIGNED: "STAFF_ASSIGN_006",
-  NOT_ASSIGNED: "STAFF_ASSIGN_007",
-  INVALID_PARAMS: "STAFF_ASSIGN_008",
-} as const;
-
-export type StaffAssignErrorCode = (typeof STAFF_ASSIGN_ERRORS)[keyof typeof STAFF_ASSIGN_ERRORS];
-
-// ── Employee error codes ──
-export const EMPLOYEE_ERRORS = {
-  NOT_FOUND: "EMPLOYEE_001",
-  CREATE_FAILED: "EMPLOYEE_002",
-  UPDATE_FAILED: "EMPLOYEE_003",
-  DISABLE_FAILED: "EMPLOYEE_004",
-  USERNAME_EXISTS: "EMPLOYEE_005",
-  PHONE_EXISTS: "EMPLOYEE_006",
-  INVALID_PARAMS: "EMPLOYEE_007",
-} as const;
-export type EmployeeErrorCode = (typeof EMPLOYEE_ERRORS)[keyof typeof EMPLOYEE_ERRORS];
-
-// ── Room error codes ──
-export const ROOM_ERRORS = {
-  NOT_FOUND: "ROOM_001",
-  VALIDATION_ERROR: "ROOM_002",
-  CREATE_FAILED: "ROOM_003",
-  UPDATE_FAILED: "ROOM_004",
-  DELETE_FAILED: "ROOM_005",
-  NAME_EXISTS: "ROOM_006",
-} as const;
-export type RoomErrorCode = (typeof ROOM_ERRORS)[keyof typeof ROOM_ERRORS];
-
-// ── Machine error codes ──
-export const MACHINE_ERRORS = {
-  NOT_FOUND: "MACHINE_001",
-  VALIDATION_ERROR: "MACHINE_002",
-  CREATE_FAILED: "MACHINE_003",
-  UPDATE_FAILED: "MACHINE_004",
-  DELETE_FAILED: "MACHINE_005",
-  ROOM_NOT_FOUND: "MACHINE_006",
-} as const;
-export type MachineErrorCode = (typeof MACHINE_ERRORS)[keyof typeof MACHINE_ERRORS];
-
-// ── Resident error codes ──
-export const RESIDENT_ERRORS = {
-  NOT_FOUND: "RESIDENT_001",
-  ALREADY_BOUND: "RESIDENT_002",
-  BIND_FAILED: "RESIDENT_003",
-  NOT_BOUND: "RESIDENT_004",
-  UNBIND_FAILED: "RESIDENT_005",
-  VALIDATION_ERROR: "RESIDENT_006",
-} as const;
-export type ResidentErrorCode = (typeof RESIDENT_ERRORS)[keyof typeof RESIDENT_ERRORS];
-
-// ── SMS configuration ──
-export const SMS_CODE_TTL = Number(process.env.SMS_CODE_TTL) || 300;
-
-export const SMS_PROVIDER = (process.env.SMS_PROVIDER as "aliyun" | "mock") || "mock";

@@ -30,7 +30,6 @@ async function main() {
   await prisma.verification.deleteMany();
   await prisma.monitoringRecord.deleteMany();
   await prisma.appointment.deleteMany();
-  await prisma.residentStore.deleteMany();
   await prisma.resident.deleteMany();
   await prisma.staffStore.deleteMany();
   await prisma.staff.deleteMany();
@@ -80,7 +79,6 @@ async function main() {
   // ── Staff ──
   const adminPasswordHash = await bcrypt.hash("admin123", 10);
   const staffPasswordHash = await bcrypt.hash("staff123", 10);
-  const managerPasswordHash = await bcrypt.hash("manager123", 10);
 
   const staffAdmin = await prisma.staff.create({
     data: {
@@ -89,16 +87,6 @@ async function main() {
       phone: "13900000001",
       name: "管理员",
       role: "admin",
-    },
-  });
-
-  const staffManager = await prisma.staff.create({
-    data: {
-      username: "manager",
-      password: managerPasswordHash,
-      phone: "13900000003",
-      name: "店长",
-      role: "store_manager",
     },
   });
 
@@ -111,18 +99,17 @@ async function main() {
       role: "staff",
     },
   });
-  console.log(`✅ 3 staff created (admin, manager, staff)`);
+  console.log(`✅ 2 staff created (admin, staff)`);
 
   // ── StaffStore assignments ──
   await prisma.staffStore.createMany({
     data: [
       { staffId: staffAdmin.id, storeId: storeA.id },
       { staffId: staffAdmin.id, storeId: storeB.id },
-      { staffId: staffManager.id, storeId: storeA.id },
       { staffId: staffMember.id, storeId: storeA.id },
     ],
   });
-  console.log(`✅ StaffStore assignments created (admin→A+B, manager→A, staff→A)`);
+  console.log(`✅ StaffStore assignments created (admin→A+B, staff→A)`);
 
   // ── Residents ──
   const residents = await Promise.all(
@@ -132,27 +119,12 @@ async function main() {
           name,
           phone: `1380013800${(i + 1).toString().padStart(2, "0")}`,
           registrationSource: randomItem(REGISTRATION_SOURCES),
+          storeId: storeA.id,
         },
       })
     )
   );
   console.log(`✅ ${residents.length} residents created`);
-
-  // ── ResidentStore assignments ──
-  // All 10 residents → storeA
-  const residentStoreData = residents.map((r) => ({
-    residentId: r.id,
-    storeId: storeA.id,
-  }));
-  // First 3 residents (张三, 李四, 王五) → also storeB for multi-store testing
-  for (let i = 0; i < 3; i++) {
-    residentStoreData.push({
-      residentId: residents[i].id,
-      storeId: storeB.id,
-    });
-  }
-  await prisma.residentStore.createMany({ data: residentStoreData });
-  console.log(`✅ ResidentStore assignments created (all→A, first 3→A+B)`);
 
   // ── Monitoring Records (1–3 per resident) ──
   const CONSTITUTION_TYPES = ["气虚质", "阳虚质", "阴虚质", "痰湿质", "湿热质", "血瘀质", "气郁质", "特禀质", "平和质"];
@@ -180,7 +152,7 @@ async function main() {
   console.log(`   Stores: ${storeA.name}, ${storeB.name}`);
   console.log(`   Rooms: ${rooms.length} (store A)`);
   console.log(`   Machines: ${machines.length} (store A)`);
-  console.log(`   Staff: ${staffAdmin.username} (${staffAdmin.role}) → stores A+B, ${staffManager.username} (${staffManager.role}) → store A, ${staffMember.username} (${staffMember.role}) → store A`);
+  console.log(`   Staff: ${staffAdmin.username} (${staffAdmin.role}) → stores A+B, ${staffMember.username} (${staffMember.role}) → store A`);
   console.log(`   Residents: ${residents.length} (store A)`);
   console.log(`   Monitoring Records: ${monitoringCount} (store A)`);
 }

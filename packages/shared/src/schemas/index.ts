@@ -47,6 +47,7 @@ export const createResidentSchema = z.object({
     .regex(/^1[3-9]\d{9}$/, "请输入有效的手机号"),
   wechatOpenid: z.string().optional(),
   registrationSource: z.string().optional(),
+  storeId: z.string().min(1, "门店ID不能为空"),
 });
 
 // ── Create monitoring record ──
@@ -65,6 +66,15 @@ export const monitoringHistoryQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });
+
+// ── Resident list query ──
+export const residentListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  search: z.string().optional(),
+});
+
+export type ResidentListQueryInput = z.infer<typeof residentListQuerySchema>;
 
 // ── Appointment ──
 export const createAppointmentSchema = z.object({
@@ -254,110 +264,3 @@ export const switchStoreSchema = z.object({
 });
 
 export type SwitchStoreInput = z.infer<typeof switchStoreSchema>;
-
-// ── Resident store binding (admin) ──
-export const bindStoreSchema = z.object({
-  storeId: z.string().min(1, "门店ID不能为空"),
-});
-
-export type BindStoreInput = z.infer<typeof bindStoreSchema>;
-
-// ── Resident list query (admin) ──
-export const residentListQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  offset: z.coerce.number().int().min(0).default(0),
-  search: z.string().optional(),
-});
-
-export type ResidentListQueryInput = z.infer<typeof residentListQuerySchema>;
-
-// ── Admin staff assignment ──
-export const assignStoreSchema = z.object({
-  storeId: z.string().min(1, "门店ID不能为空"),
-});
-
-export type AssignStoreInput = z.infer<typeof assignStoreSchema>;
-
-export const removeStoreSchema = z.object({
-  storeId: z.string().min(1, "门店ID不能为空"),
-});
-
-export type RemoveStoreInput = z.infer<typeof removeStoreSchema>;
-
-export const staffListQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  offset: z.coerce.number().int().min(0).default(0),
-});
-
-export type StaffListQueryInput = z.infer<typeof staffListQuerySchema>;
-
-// ── Room schemas ──
-
-export const createRoomSchema = z.object({
-  name: z
-    .string()
-    .min(1, "房间名称不能为空")
-    .max(50, "房间名称过长"),
-  capacity: z
-    .number()
-    .int()
-    .min(1, "容量至少为1")
-    .max(100, "容量不能超过100"),
-});
-
-export const updateRoomSchema = z.object({
-  name: z
-    .string()
-    .min(1, "房间名称不能为空")
-    .max(50, "房间名称过长")
-    .optional(),
-  capacity: z
-    .number()
-    .int()
-    .min(1, "容量至少为1")
-    .max(100, "容量不能超过100")
-    .optional(),
-});
-
-export const roomListQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  offset: z.coerce.number().int().min(0).default(0),
-  search: z.string().optional(),
-});
-
-// ── Machine schemas ──
-
-export const createMachineSchema = z.object({
-  name: z
-    .string()
-    .min(1, "设备名称不能为空")
-    .max(50, "设备名称过长"),
-  roomId: z.string().optional(),
-  status: z.enum(["available", "in_use", "maintenance", "out_of_service"]).optional(),
-});
-
-export const updateMachineSchema = z.object({
-  name: z
-    .string()
-    .min(1, "设备名称不能为空")
-    .max(50, "设备名称过长")
-    .optional(),
-  roomId: z.string().nullable().optional(),
-  status: z.enum(["available", "in_use", "maintenance", "out_of_service"]).optional(),
-});
-
-export const machineListQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  offset: z.coerce.number().int().min(0).default(0),
-  roomId: z.string().optional(),
-  status: z.string().optional(),
-});
-
-// ── Room & Machine inferred types ──
-
-export type CreateRoomInput = z.infer<typeof createRoomSchema>;
-export type UpdateRoomInput = z.infer<typeof updateRoomSchema>;
-export type RoomListQueryInput = z.infer<typeof roomListQuerySchema>;
-export type CreateMachineInput = z.infer<typeof createMachineSchema>;
-export type UpdateMachineInput = z.infer<typeof updateMachineSchema>;
-export type MachineListQueryInput = z.infer<typeof machineListQuerySchema>;

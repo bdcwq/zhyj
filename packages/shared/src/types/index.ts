@@ -56,13 +56,6 @@ export interface StoreSummary {
   name: string;
 }
 
-// ── ResidentStore (junction) ──
-export interface ResidentStore extends Timestamps {
-  id: string;
-  residentId: string;
-  storeId: string;
-}
-
 // ── Resident ──
 export interface Resident extends Timestamps {
   id: string;
@@ -70,6 +63,7 @@ export interface Resident extends Timestamps {
   phone: string;
   wechatOpenid?: string | null;
   registrationSource: string;
+  storeId: string;
   deletedAt?: Date | null;
 }
 
