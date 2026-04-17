@@ -61,7 +61,7 @@ const displayName = computed(() => authStore.residentName || '未登录')
 const avatarLetter = computed(() => displayName.value.charAt(0))
 
 const maskedPhone = computed(() => {
-  const phone = authStore.residentPhone
+  const phone = authStore.phone
   if (!phone || phone.length < 7) return '未绑定手机'
   return phone.slice(0, 3) + '****' + phone.slice(-4)
 })
