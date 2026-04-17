@@ -36,6 +36,12 @@
       "style": {
         "navigationBarTitleText": "理疗记录"
       }
+    },
+    {
+      "path": "pages/health/health",
+      "style": {
+        "navigationBarTitleText": "健康档案"
+      }
     }
   ],
   "tabBar": {

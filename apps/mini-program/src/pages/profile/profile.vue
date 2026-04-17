@@ -11,6 +11,20 @@
       </view>
     </view>
 
+    <!-- Quick links -->
+    <view class="quick-links-section">
+      <view class="quick-link-item" @tap="goToTreatment">
+        <text class="quick-link-icon">🤖</text>
+        <text class="quick-link-text">理疗记录</text>
+        <text class="quick-link-arrow">›</text>
+      </view>
+      <view class="quick-link-item" @tap="goToHealth">
+        <text class="quick-link-icon">📋</text>
+        <text class="quick-link-text">健康档案</text>
+        <text class="quick-link-arrow">›</text>
+      </view>
+    </view>
+
     <!-- Info section -->
     <view class="info-section">
       <view class="info-item">
@@ -47,14 +61,25 @@ const displayName = computed(() => authStore.residentName || '未登录')
 const avatarLetter = computed(() => displayName.value.charAt(0))
 
 const maskedPhone = computed(() => {
-  // If we had the phone from resident info, mask it
-  // For now, show a placeholder since the login response only returns id + name
-  return '微信用户'
+  const phone = authStore.residentPhone
+  if (!phone || phone.length < 7) return '未绑定手机'
+  return phone.slice(0, 3) + '****' + phone.slice(-4)
 })
 
 const registrationSourceText = computed(() => {
-  return '微信授权登录'
+  const source = authStore.registrationSource
+  if (source === 'WECHAT') return '微信授权登录'
+  if (source) return source
+  return '未知'
 })
+
+function goToTreatment() {
+  uni.navigateTo({ url: '/pages/treatment/treatment' })
+}
+
+function goToHealth() {
+  uni.navigateTo({ url: '/pages/health/health' })
+}
 
 function handleLogout() {
   uni.showModal({
@@ -117,11 +142,50 @@ function handleLogout() {
   color: rgba(255, 255, 255, 0.8);
 }
 
-.info-section {
+/* Quick links */
+.quick-links-section {
   margin: 30rpx;
   background-color: #ffffff;
   border-radius: 20rpx;
   overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.quick-link-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.quick-link-item:last-child {
+  border-bottom: none;
+}
+
+.quick-link-icon {
+  font-size: 40rpx;
+  margin-right: 20rpx;
+}
+
+.quick-link-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.quick-link-arrow {
+  font-size: 32rpx;
+  color: #ccc;
+}
+
+/* Info section */
+.info-section {
+  margin: 0 30rpx 30rpx;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .info-item {
@@ -148,10 +212,11 @@ function handleLogout() {
 }
 
 .action-section {
-  margin: 30rpx;
+  margin: 0 30rpx 30rpx;
   background-color: #ffffff;
   border-radius: 20rpx;
   overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .action-item {

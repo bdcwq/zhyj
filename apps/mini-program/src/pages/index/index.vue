@@ -94,6 +94,10 @@ function goToAppointments() {
 function goToTreatment() {
   uni.navigateTo({ url: '/pages/treatment/treatment' })
 }
+
+function goToHealth() {
+  uni.navigateTo({ url: '/pages/health/health' })
+}
 </script>
 
 <style scoped>
