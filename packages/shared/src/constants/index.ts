@@ -282,6 +282,17 @@ export const MACHINE_ERRORS = {
 } as const;
 export type MachineErrorCode = (typeof MACHINE_ERRORS)[keyof typeof MACHINE_ERRORS];
 
+// ── Resident error codes ──
+export const RESIDENT_ERRORS = {
+  NOT_FOUND: "RESIDENT_001",
+  ALREADY_BOUND: "RESIDENT_002",
+  BIND_FAILED: "RESIDENT_003",
+  NOT_BOUND: "RESIDENT_004",
+  UNBIND_FAILED: "RESIDENT_005",
+  VALIDATION_ERROR: "RESIDENT_006",
+} as const;
+export type ResidentErrorCode = (typeof RESIDENT_ERRORS)[keyof typeof RESIDENT_ERRORS];
+
 // ── SMS configuration ──
 export const SMS_CODE_TTL = Number(process.env.SMS_CODE_TTL) || 300;
 

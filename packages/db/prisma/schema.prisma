@@ -20,8 +20,8 @@ model Store {
   rooms     Room[]
   machines  Machine[]
   staffStores StaffStore[]
+  residentStores ResidentStore[]
 
-  residents         Resident[]
   monitoringRecords MonitoringRecord[]
   appointments      Appointment[]
   verifications     Verification[]
@@ -93,6 +93,20 @@ model StaffStore {
   @@unique([staffId, storeId])
 }
 
+// ── ResidentStore (junction) ──────────────────────────────────────────
+model ResidentStore {
+  id         String   @id @default(cuid())
+  residentId String
+  storeId    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([residentId, storeId])
+}
+
 // ── Resident ───────────────────────────────────────────────────────────
 model Resident {
   id                String   @id @default(cuid())
@@ -100,12 +114,11 @@ model Resident {
   phone             String   @unique
   wechatOpenid      String?  @unique
   registrationSource String  @default("walk-in")
-  storeId           String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   deletedAt         DateTime?
 
-  store             Store              @relation(fields: [storeId], references: [id])
+  residentStores    ResidentStore[]
   monitoringRecords MonitoringRecord[]
   appointments      Appointment[]
 }

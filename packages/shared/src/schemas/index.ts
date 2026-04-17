@@ -47,7 +47,6 @@ export const createResidentSchema = z.object({
     .regex(/^1[3-9]\d{9}$/, "请输入有效的手机号"),
   wechatOpenid: z.string().optional(),
   registrationSource: z.string().optional(),
-  storeId: z.string().min(1, "门店ID不能为空"),
 });
 
 // ── Create monitoring record ──
@@ -255,6 +254,22 @@ export const switchStoreSchema = z.object({
 });
 
 export type SwitchStoreInput = z.infer<typeof switchStoreSchema>;
+
+// ── Resident store binding (admin) ──
+export const bindStoreSchema = z.object({
+  storeId: z.string().min(1, "门店ID不能为空"),
+});
+
+export type BindStoreInput = z.infer<typeof bindStoreSchema>;
+
+// ── Resident list query (admin) ──
+export const residentListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  search: z.string().optional(),
+});
+
+export type ResidentListQueryInput = z.infer<typeof residentListQuerySchema>;
 
 // ── Admin staff assignment ──
 export const assignStoreSchema = z.object({
