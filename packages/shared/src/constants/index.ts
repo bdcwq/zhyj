@@ -1,10 +1,25 @@
 // ── Staff roles ──
 export const STAFF_ROLES = {
   ADMIN: "admin",
+  STORE_MANAGER: "store_manager",
   STAFF: "staff",
 } as const;
 
 export type StaffRole = (typeof STAFF_ROLES)[keyof typeof STAFF_ROLES];
+
+// ── Role access levels (higher = more permissions) ──
+export const ROLE_ACCESS_LEVELS: Record<string, number> = {
+  admin: 3,
+  store_manager: 2,
+  staff: 1,
+};
+
+// ── Permission error codes ──
+export const PERMISSION_ERRORS = {
+  FORBIDDEN: "PERMISSION_001",
+} as const;
+
+export type PermissionErrorCode = (typeof PERMISSION_ERRORS)[keyof typeof PERMISSION_ERRORS];
 
 // ── Appointment statuses ──
 export const APPOINTMENT_STATUS = {
@@ -193,6 +208,18 @@ export const NOTIFICATION_ERRORS = {
 } as const;
 
 export type NotificationErrorCode = (typeof NOTIFICATION_ERRORS)[keyof typeof NOTIFICATION_ERRORS];
+
+// ── Resident error codes ──
+export const RESIDENT_ERRORS = {
+  NOT_FOUND: "RESIDENT_001",
+  ALREADY_BOUND: "RESIDENT_002",
+  BIND_FAILED: "RESIDENT_003",
+  NOT_BOUND: "RESIDENT_004",
+  UNBIND_FAILED: "RESIDENT_005",
+  LAST_STORE: "RESIDENT_006",
+} as const;
+
+export type ResidentErrorCode = (typeof RESIDENT_ERRORS)[keyof typeof RESIDENT_ERRORS];
 
 // ── Store switch error codes ──
 export const STORE_SWITCH_ERRORS = {

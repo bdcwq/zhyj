@@ -264,3 +264,10 @@ export const switchStoreSchema = z.object({
 });
 
 export type SwitchStoreInput = z.infer<typeof switchStoreSchema>;
+
+// ── Bind/unbind store (admin management) ──
+export const bindStoreSchema = z.object({
+  storeId: z.string().min(1, "门店ID不能为空"),
+});
+
+export type BindStoreInput = z.infer<typeof bindStoreSchema>;

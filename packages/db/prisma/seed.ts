@@ -30,6 +30,7 @@ async function main() {
   await prisma.verification.deleteMany();
   await prisma.monitoringRecord.deleteMany();
   await prisma.appointment.deleteMany();
+  await prisma.residentStore.deleteMany();
   await prisma.resident.deleteMany();
   await prisma.staffStore.deleteMany();
   await prisma.staff.deleteMany();
@@ -119,12 +120,23 @@ async function main() {
           name,
           phone: `1380013800${(i + 1).toString().padStart(2, "0")}`,
           registrationSource: randomItem(REGISTRATION_SOURCES),
-          storeId: storeA.id,
         },
       })
     )
   );
   console.log(`✅ ${residents.length} residents created`);
+
+  // ── ResidentStore assignments ──
+  const residentStoreData = residents.map((r) => ({
+    residentId: r.id,
+    storeId: storeA.id,
+  }));
+  // Give last 3 residents a second store (store B) for multi-store testing
+  residents.slice(-3).forEach((r) => {
+    residentStoreData.push({ residentId: r.id, storeId: storeB.id });
+  });
+  await prisma.residentStore.createMany({ data: residentStoreData });
+  console.log(`✅ ResidentStore assignments created (${residents.length}→A, 3→A+B)`);
 
   // ── Monitoring Records (1–3 per resident) ──
   const CONSTITUTION_TYPES = ["气虚质", "阳虚质", "阴虚质", "痰湿质", "湿热质", "血瘀质", "气郁质", "特禀质", "平和质"];
