@@ -31,7 +31,7 @@
         <text class="feature-desc">预约艾灸理疗服务</text>
       </view>
 
-      <view class="feature-card">
+      <view class="feature-card" @tap="goToTreatment">
         <text class="feature-icon">🤖</text>
         <text class="feature-title">理疗记录</text>
         <text class="feature-desc">查看历史理疗记录</text>
@@ -89,6 +89,10 @@ function goToMonitoring() {
 
 function goToAppointments() {
   uni.navigateTo({ url: '/pages/appointments/appointments' })
+}
+
+function goToTreatment() {
+  uni.navigateTo({ url: '/pages/treatment/treatment' })
 }
 </script>
 

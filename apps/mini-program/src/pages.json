@@ -30,6 +30,12 @@
       "style": {
         "navigationBarTitleText": "预约管理"
       }
+    },
+    {
+      "path": "pages/treatment/treatment",
+      "style": {
+        "navigationBarTitleText": "理疗记录"
+      }
     }
   ],
   "tabBar": {
