@@ -248,6 +248,18 @@ export const STAFF_ASSIGN_ERRORS = {
 
 export type StaffAssignErrorCode = (typeof STAFF_ASSIGN_ERRORS)[keyof typeof STAFF_ASSIGN_ERRORS];
 
+// ── Employee error codes ──
+export const EMPLOYEE_ERRORS = {
+  NOT_FOUND: "EMPLOYEE_001",
+  CREATE_FAILED: "EMPLOYEE_002",
+  UPDATE_FAILED: "EMPLOYEE_003",
+  DISABLE_FAILED: "EMPLOYEE_004",
+  USERNAME_EXISTS: "EMPLOYEE_005",
+  PHONE_EXISTS: "EMPLOYEE_006",
+  INVALID_PARAMS: "EMPLOYEE_007",
+} as const;
+export type EmployeeErrorCode = (typeof EMPLOYEE_ERRORS)[keyof typeof EMPLOYEE_ERRORS];
+
 // ── SMS configuration ──
 export const SMS_CODE_TTL = Number(process.env.SMS_CODE_TTL) || 300;
 
