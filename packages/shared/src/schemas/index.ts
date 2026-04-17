@@ -275,3 +275,74 @@ export const staffListQuerySchema = z.object({
 });
 
 export type StaffListQueryInput = z.infer<typeof staffListQuerySchema>;
+
+// ── Room schemas ──
+
+export const createRoomSchema = z.object({
+  name: z
+    .string()
+    .min(1, "房间名称不能为空")
+    .max(50, "房间名称过长"),
+  capacity: z
+    .number()
+    .int()
+    .min(1, "容量至少为1")
+    .max(100, "容量不能超过100"),
+});
+
+export const updateRoomSchema = z.object({
+  name: z
+    .string()
+    .min(1, "房间名称不能为空")
+    .max(50, "房间名称过长")
+    .optional(),
+  capacity: z
+    .number()
+    .int()
+    .min(1, "容量至少为1")
+    .max(100, "容量不能超过100")
+    .optional(),
+});
+
+export const roomListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  search: z.string().optional(),
+});
+
+// ── Machine schemas ──
+
+export const createMachineSchema = z.object({
+  name: z
+    .string()
+    .min(1, "设备名称不能为空")
+    .max(50, "设备名称过长"),
+  roomId: z.string().optional(),
+  status: z.enum(["available", "in_use", "maintenance", "out_of_service"]).optional(),
+});
+
+export const updateMachineSchema = z.object({
+  name: z
+    .string()
+    .min(1, "设备名称不能为空")
+    .max(50, "设备名称过长")
+    .optional(),
+  roomId: z.string().nullable().optional(),
+  status: z.enum(["available", "in_use", "maintenance", "out_of_service"]).optional(),
+});
+
+export const machineListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  roomId: z.string().optional(),
+  status: z.string().optional(),
+});
+
+// ── Room & Machine inferred types ──
+
+export type CreateRoomInput = z.infer<typeof createRoomSchema>;
+export type UpdateRoomInput = z.infer<typeof updateRoomSchema>;
+export type RoomListQueryInput = z.infer<typeof roomListQuerySchema>;
+export type CreateMachineInput = z.infer<typeof createMachineSchema>;
+export type UpdateMachineInput = z.infer<typeof updateMachineSchema>;
+export type MachineListQueryInput = z.infer<typeof machineListQuerySchema>;
