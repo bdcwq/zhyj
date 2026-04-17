@@ -14,6 +14,8 @@ const CURRENT_STORE_KEY = 'current-store-id'
 export interface ResidentInfo {
   id: string
   name: string
+  phone?: string
+  registrationSource?: string
 }
 
 export interface StoreSummary {
@@ -53,7 +55,7 @@ export async function wechatLogin(): Promise<WechatLoginResult> {
   const res = await request<{
     token: string
     expiresIn: string
-    user: { id: string; phone: string; name: string; stores: StoreSummary[] }
+    user: { id: string; phone: string; name: string; registrationSource?: string; stores: StoreSummary[] }
     resident: { id: string; name: string }
   }>({
     url: '/auth/resident/wechat',
@@ -67,7 +69,12 @@ export async function wechatLogin(): Promise<WechatLoginResult> {
   }
 
   const { token, user } = res.data
-  const resident: ResidentInfo = { id: user.id, name: user.name }
+  const resident: ResidentInfo = {
+    id: user.id,
+    name: user.name,
+    phone: user.phone,
+    registrationSource: user.registrationSource,
+  }
   const stores = user.stores || []
 
   // Step 3: Persist token, resident info, and stores
@@ -127,7 +134,7 @@ export async function switchResidentStore(storeId: string): Promise<{
   const res = await request<{
     token: string
     expiresIn: string
-    user: { id: string; phone: string; name: string; stores: StoreSummary[] }
+    user: { id: string; phone: string; name: string; registrationSource?: string; stores: StoreSummary[] }
   }>({
     url: '/auth/resident/switch-store',
     method: 'POST',
@@ -142,10 +149,19 @@ export async function switchResidentStore(storeId: string): Promise<{
   const { token, user } = res.data
   const stores = user.stores || []
 
-  // Persist new token and store selection
+  // Persist new token, registration source, and store selection
   uni.setStorageSync(TOKEN_KEY, token)
   uni.setStorageSync(STORES_KEY, JSON.stringify(stores))
   uni.setStorageSync(CURRENT_STORE_KEY, storeId)
+
+  // Update resident info with latest registrationSource if available
+  if (user.registrationSource) {
+    const existingInfo = getResidentInfo()
+    if (existingInfo) {
+      existingInfo.registrationSource = user.registrationSource
+      uni.setStorageSync(RESIDENT_KEY, JSON.stringify(existingInfo))
+    }
+  }
 
   console.log(`[auth] Store switched to: ${storeId}`)
 

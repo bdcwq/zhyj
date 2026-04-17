@@ -23,6 +23,8 @@ export const useAuthStore = defineStore('auth', () => {
   // ── Getters ──
   const isLoggedIn = computed(() => !!token.value)
   const residentName = computed(() => resident.value?.name || '')
+  const residentPhone = computed(() => resident.value?.phone || '')
+  const registrationSource = computed(() => resident.value?.registrationSource || '')
   const currentStoreName = computed(() => {
     const store = stores.value.find((s) => s.id === currentStoreId.value)
     return store?.name || '未选择门店'
@@ -86,6 +88,8 @@ export const useAuthStore = defineStore('auth', () => {
     currentStoreId,
     isLoggedIn,
     residentName,
+    residentPhone,
+    registrationSource,
     currentStoreName,
     loadFromStorage,
     login,

@@ -50,6 +50,7 @@ export const REGISTRATION_SOURCE = {
   ACTIVITY: "activity",
   REFERRAL: "referral",
   MARKETING: "marketing",
+  WECHAT: "wechat",
 } as const;
 
 export type RegistrationSource = (typeof REGISTRATION_SOURCE)[keyof typeof REGISTRATION_SOURCE];
