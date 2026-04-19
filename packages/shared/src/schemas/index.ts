@@ -271,3 +271,52 @@ export const bindStoreSchema = z.object({
 });
 
 export type BindStoreInput = z.infer<typeof bindStoreSchema>;
+
+// ── Room schemas ──
+export const createRoomSchema = z.object({
+  name: z.string().min(1, "房间名称不能为空").max(50, "房间名称过长"),
+  capacity: z.coerce.number().int().min(1, "容量至少为1").default(1),
+});
+
+export type CreateRoomInput = z.infer<typeof createRoomSchema>;
+
+export const updateRoomSchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  capacity: z.coerce.number().int().min(1).optional(),
+});
+
+export type UpdateRoomInput = z.infer<typeof updateRoomSchema>;
+
+export const roomListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  search: z.string().optional(),
+});
+
+export type RoomListQueryInput = z.infer<typeof roomListQuerySchema>;
+
+// ── Machine schemas ──
+export const createMachineSchema = z.object({
+  name: z.string().min(1, "设备名称不能为空").max(50, "设备名称过长"),
+  roomId: z.string().min(1, "房间ID不能为空").optional(),
+  status: z.enum(["available", "in_use", "maintenance", "out_of_service"]).optional().default("available"),
+});
+
+export type CreateMachineInput = z.infer<typeof createMachineSchema>;
+
+export const updateMachineSchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  roomId: z.string().min(1).optional().nullable(),
+  status: z.enum(["available", "in_use", "maintenance", "out_of_service"]).optional(),
+});
+
+export type UpdateMachineInput = z.infer<typeof updateMachineSchema>;
+
+export const machineListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  roomId: z.string().optional(),
+  status: z.string().optional(),
+});
+
+export type MachineListQueryInput = z.infer<typeof machineListQuerySchema>;

@@ -21,6 +21,43 @@ export const PERMISSION_ERRORS = {
 
 export type PermissionErrorCode = (typeof PERMISSION_ERRORS)[keyof typeof PERMISSION_ERRORS];
 
+// ── Employee (staff) error codes ──
+export const EMPLOYEE_ERRORS = {
+  NOT_FOUND: "EMPLOYEE_001",
+  INVALID_PARAMS: "EMPLOYEE_002",
+  USERNAME_EXISTS: "EMPLOYEE_003",
+  PHONE_EXISTS: "EMPLOYEE_004",
+  CREATE_FAILED: "EMPLOYEE_005",
+  UPDATE_FAILED: "EMPLOYEE_006",
+  DISABLE_FAILED: "EMPLOYEE_007",
+} as const;
+
+export type EmployeeErrorCode = (typeof EMPLOYEE_ERRORS)[keyof typeof EMPLOYEE_ERRORS];
+
+// ── Room error codes ──
+export const ROOM_ERRORS = {
+  NOT_FOUND: "ROOM_001",
+  VALIDATION_ERROR: "ROOM_002",
+  CREATE_FAILED: "ROOM_003",
+  UPDATE_FAILED: "ROOM_004",
+  DELETE_FAILED: "ROOM_005",
+  NAME_EXISTS: "ROOM_006",
+} as const;
+
+export type RoomErrorCode = (typeof ROOM_ERRORS)[keyof typeof ROOM_ERRORS];
+
+// ── Machine error codes ──
+export const MACHINE_ERRORS = {
+  NOT_FOUND: "MACHINE_001",
+  VALIDATION_ERROR: "MACHINE_002",
+  CREATE_FAILED: "MACHINE_003",
+  UPDATE_FAILED: "MACHINE_004",
+  DELETE_FAILED: "MACHINE_005",
+  ROOM_NOT_FOUND: "MACHINE_006",
+} as const;
+
+export type MachineErrorCode = (typeof MACHINE_ERRORS)[keyof typeof MACHINE_ERRORS];
+
 // ── Appointment statuses ──
 export const APPOINTMENT_STATUS = {
   BOOKED: "booked",
