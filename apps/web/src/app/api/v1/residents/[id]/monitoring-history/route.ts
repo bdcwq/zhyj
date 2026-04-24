@@ -67,10 +67,10 @@ export async function GET(
     ]);
 
     // Compute stats
-    const allScores = records.map((r) => r.score);
+    const allScores = records.map((r: { score: number }) => r.score);
     const averageScore =
       allScores.length > 0
-        ? Math.round((allScores.reduce((a, b) => a + b, 0) / allScores.length) * 10) / 10
+        ? Math.round((allScores.reduce((a: number, b: number) => a + b, 0) / allScores.length) * 10) / 10
         : 0;
     const latestScore = allScores.length > 0 ? allScores[0] : null;
 

@@ -37,7 +37,7 @@ export async function PATCH(
     // Store manager scoping: verify the target staff belongs to their store
     if (ctx.role === "store_manager") {
       const belongsToStore = staff.staffStores.some(
-        (ss) => ss.storeId === ctx.storeId,
+        (ss: { storeId: string }) => ss.storeId === ctx.storeId,
       );
       if (!belongsToStore) {
         return errorResponse(EMPLOYEE_ERRORS.NOT_FOUND, "员工不存在", 404);

@@ -295,6 +295,33 @@ export const roomListQuerySchema = z.object({
 
 export type RoomListQueryInput = z.infer<typeof roomListQuerySchema>;
 
+// ── Store schemas ──
+export const createStoreSchema = z.object({
+  name: z.string().min(1, "店铺名称不能为空").max(100, "店铺名称过长"),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  businessHours: z.string().optional(),
+});
+
+export type CreateStoreInput = z.infer<typeof createStoreSchema>;
+
+export const updateStoreSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  businessHours: z.string().optional(),
+});
+
+export type UpdateStoreInput = z.infer<typeof updateStoreSchema>;
+
+export const storeListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  search: z.string().optional(),
+});
+
+export type StoreListQueryInput = z.infer<typeof storeListQuerySchema>;
+
 // ── Machine schemas ──
 export const createMachineSchema = z.object({
   name: z.string().min(1, "设备名称不能为空").max(50, "设备名称过长"),
@@ -320,3 +347,177 @@ export const machineListQuerySchema = z.object({
 });
 
 export type MachineListQueryInput = z.infer<typeof machineListQuerySchema>;
+
+// ── Schedule / Shift Template ──
+export const shiftDefinitionSchema = z.object({
+  type: z.string().min(1, "班次类型不能为空"),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, "时间格式应为 HH:mm"),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/, "时间格式应为 HH:mm"),
+  requiredStaff: z.number().int().min(1).default(1),
+});
+
+export const createTemplateSchema = z.object({
+  name: z.string().min(1, "模板名称不能为空").max(100),
+  shifts: z.array(shiftDefinitionSchema).min(1, "至少定义一个班次"),
+  effectiveDays: z.array(z.number().int().min(1).max(7)).min(1, "至少选择一天"),
+});
+
+export const updateTemplateSchema = createTemplateSchema.partial();
+
+export const generateScheduleSchema = z.object({
+  templateId: z.string().min(1, "模板ID不能为空"),
+  weekStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "日期格式应为 YYYY-MM-DD"),
+});
+
+export const scheduleListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  staffId: z.string().optional(),
+  status: z.string().optional(),
+});
+
+export const updateScheduleSchema = z.object({
+  staffId: z.string().min(1, "员工ID不能为空").optional(),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, "时间格式应为 HH:mm").optional(),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/, "时间格式应为 HH:mm").optional(),
+});
+
+export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
+export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>;
+export type GenerateScheduleInput = z.infer<typeof generateScheduleSchema>;
+export type ScheduleListQueryInput = z.infer<typeof scheduleListQuerySchema>;
+export type UpdateScheduleInput = z.infer<typeof updateScheduleSchema>;
+export type ShiftDefinition = z.infer<typeof shiftDefinitionSchema>;
+
+// ── Attendance schemas ──
+export const clockInSchema = z.object({
+  scheduleId: z.string().min(1, "排班ID不能为空"),
+});
+
+export type ClockInInput = z.infer<typeof clockInSchema>;
+
+export const clockOutSchema = z.object({
+  attendanceId: z.string().min(1, "考勤ID不能为空"),
+});
+
+export type ClockOutInput = z.infer<typeof clockOutSchema>;
+
+export const attendanceListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  staffId: z.string().optional(),
+  status: z.string().optional(),
+});
+
+export type AttendanceListQueryInput = z.infer<typeof attendanceListQuerySchema>;
+
+// ── Leave schemas ──
+export const createLeaveSchema = z
+  .object({
+    type: z.enum(["sick", "personal", "annual", "other"]),
+    startDate: z.string().datetime().or(z.string().date()),
+    endDate: z.string().datetime().or(z.string().date()),
+    reason: z.string().optional(),
+  })
+  .refine((data) => new Date(data.endDate) >= new Date(data.startDate), {
+    message: "结束日期不能早于开始日期",
+    path: ["endDate"],
+  });
+
+export type CreateLeaveInput = z.infer<typeof createLeaveSchema>;
+
+export const approveLeaveSchema = z.object({
+  status: z.enum(["approved", "rejected"]),
+  reason: z.string().optional(),
+});
+
+export type ApproveLeaveInput = z.infer<typeof approveLeaveSchema>;
+
+export const leaveListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  staffId: z.string().optional(),
+  status: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+});
+
+export type LeaveListQueryInput = z.infer<typeof leaveListQuerySchema>;
+
+// ── Transfer schemas ──
+export const transferSchema = z
+  .object({
+    fromStoreId: z.string().min(1, "原店铺不能为空"),
+    toStoreId: z.string().min(1, "目标店铺不能为空"),
+  })
+  .refine((data) => data.fromStoreId !== data.toStoreId, {
+    message: "原店铺和目标店铺不能相同",
+    path: ["toStoreId"],
+  });
+
+export type TransferInput = z.infer<typeof transferSchema>;
+
+// ── Cross-store report schema ──
+export const crossStoreReportSchema = z
+  .object({
+    period: z.enum(["daily", "weekly", "monthly"]).default("daily"),
+    dateFrom: z.string().date("请输入有效的日期").optional(),
+    dateTo: z.string().date("请输入有效的日期").optional(),
+    metric: z.enum(["overview", "appointments", "monitoring", "residents"]).default("overview"),
+  })
+  .refine(
+    (data) => {
+      if (!data.dateFrom || !data.dateTo) return true;
+      return data.dateFrom <= data.dateTo;
+    },
+    { message: "开始日期不能晚于结束日期", path: ["dateFrom"] }
+  )
+  .refine(
+    (data) => {
+      if (!data.dateFrom || !data.dateTo) return true;
+      const from = new Date(data.dateFrom);
+      const to = new Date(data.dateTo);
+      const diffDays = (to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24);
+      return diffDays <= 365;
+    },
+    { message: "日期范围不能超过365天", path: ["dateTo"] }
+  );
+
+export type CrossStoreReportInput = z.infer<typeof crossStoreReportSchema>;
+
+// ── Attendance report schema ──
+export const attendanceReportQuerySchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/, "月份格式应为 YYYY-MM"),
+  storeId: z.string().optional(),
+  staffId: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export type AttendanceReportQueryInput = z.infer<typeof attendanceReportQuerySchema>;
+
+// ── Export query schemas (subsets of list schemas for CSV export) ──
+export const exportResidentsQuerySchema = z.object({
+  search: z.string().optional(),
+});
+
+export type ExportResidentsQueryInput = z.infer<typeof exportResidentsQuerySchema>;
+
+export const exportAppointmentsQuerySchema = z.object({
+  residentId: z.string().optional(),
+  status: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+});
+
+export type ExportAppointmentsQueryInput = z.infer<typeof exportAppointmentsQuerySchema>;
+
+export const exportMonitoringQuerySchema = z.object({
+  residentId: z.string().optional(),
+});
+
+export type ExportMonitoringQueryInput = z.infer<typeof exportMonitoringQuerySchema>;

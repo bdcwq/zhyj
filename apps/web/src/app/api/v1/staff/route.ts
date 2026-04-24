@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(password);
 
     // Create staff with store assignments in a transaction
-    const staff = await prisma.$transaction(async (tx) => {
+    const staff = await prisma.$transaction(async (tx: any) => {
       const created = await tx.staff.create({
         data: {
           username,

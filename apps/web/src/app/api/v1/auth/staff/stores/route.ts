@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const stores: StoreSummary[] = storeAssignments.map((a) => ({
+    const stores: StoreSummary[] = storeAssignments.map((a: { store: { id: string; name: string } }) => ({
       id: a.store.id,
       name: a.store.name,
     }));

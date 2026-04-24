@@ -13,8 +13,9 @@ datasource db {
 model Store {
   id        String   @id @default(cuid())
   name      String
-  address   String?
-  phone     String?
+  address       String?
+  phone         String?
+  businessHours String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
@@ -31,6 +32,10 @@ model Store {
   notifications     Notification[]
   campaigns         Campaign[]
   campaignParticipations CampaignParticipation[]
+  shiftTemplates  ShiftTemplate[]
+  schedules       Schedule[]
+  attendances     Attendance[]
+  leaves          Leave[]
 }
 
 // ── Room ───────────────────────────────────────────────────────────────
@@ -79,6 +84,10 @@ model Staff {
 
   staffStores  StaffStore[]
   appointments Appointment[]
+  schedules    Schedule[]
+  attendances  Attendance[]
+  leaves       Leave[]
+  approvedLeaves Leave[] @relation("LeaveApprover")
 }
 
 // ── StaffStore (junction) ─────────────────────────────────────────────
@@ -249,4 +258,93 @@ model CampaignParticipation {
   store    Store    @relation(fields: [storeId], references: [id])
 
   @@unique([campaignId, refereeId])
+}
+
+// ── ShiftTemplate ─────────────────────────────────────────────────────
+model ShiftTemplate {
+  id            String   @id @default(cuid())
+  name          String
+  storeId       String
+  shifts        String   // JSON: [{type, startTime, endTime, requiredStaff}]
+  effectiveDays String   // JSON: [1,2,3,4,5] (ISO weekday numbers)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  store     Store     @relation(fields: [storeId], references: [id])
+  schedules Schedule[]
+}
+
+// ── Schedule ───────────────────────────────────────────────────────────
+model Schedule {
+  id         String   @id @default(cuid())
+  date       DateTime
+  staffId    String
+  storeId    String
+  shiftType  String
+  startTime  String   // "HH:mm"
+  endTime    String   // "HH:mm"
+  status     String   @default("scheduled") // scheduled, cancelled, completed
+  templateId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  store    Store          @relation(fields: [storeId], references: [id])
+  staff    Staff          @relation(fields: [staffId], references: [id])
+  template ShiftTemplate? @relation(fields: [templateId], references: [id])
+  attendances Attendance[]
+
+  @@unique([staffId, date, shiftType])
+  @@index([storeId, date])
+  @@index([staffId, date])
+}
+
+// ── Attendance ─────────────────────────────────────────────────────────
+model Attendance {
+  id            String    @id @default(cuid())
+  staffId       String
+  storeId       String
+  scheduleId    String?
+  date          DateTime
+  clockIn       DateTime?
+  clockOut      DateTime?
+  status        String    @default("pending") // pending, normal, late, early_leave, late_and_early, absent
+  scheduledStart String?
+  scheduledEnd   String?
+  workedMinutes Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  store    Store     @relation(fields: [storeId], references: [id])
+  staff    Staff     @relation(fields: [staffId], references: [id])
+  schedule Schedule? @relation(fields: [scheduleId], references: [id])
+
+  @@unique([staffId, date, scheduleId])
+  @@index([storeId, date])
+  @@index([staffId, date])
+  @@index([status])
+}
+
+// ── Leave ──────────────────────────────────────────────────────────────
+model Leave {
+  id          String    @id @default(cuid())
+  staffId     String
+  storeId     String
+  type        String    // sick, personal, annual, other
+  startDate   DateTime
+  endDate     DateTime
+  status      String    @default("pending") // pending, approved, rejected
+  reason      String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  store     Store     @relation(fields: [storeId], references: [id])
+  staff     Staff     @relation(fields: [staffId], references: [id])
+  approver  Staff?    @relation("LeaveApprover", fields: [approvedBy], references: [id])
+
+  @@index([storeId, status])
+  @@index([staffId, status])
+  @@index([startDate, endDate])
 }

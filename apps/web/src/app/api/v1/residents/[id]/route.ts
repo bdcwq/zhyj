@@ -47,7 +47,7 @@ export async function GET(
 
     return successResponse({
       ...resident,
-      stores: resident.residentStores.map((rs) => ({
+      stores: resident.residentStores.map((rs: { store: { id: string; name: string } }) => ({
         id: rs.store.id,
         name: rs.store.name,
       })),

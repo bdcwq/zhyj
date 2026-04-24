@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       where: { staffId: authContext.staffId },
       include: { store: { select: { id: true, name: true } } },
     });
-    const stores: StoreSummary[] = storeAssignments.map((a) => ({
+    const stores: StoreSummary[] = storeAssignments.map((a: { store: { id: string; name: string } }) => ({
       id: a.store.id,
       name: a.store.name,
     }));

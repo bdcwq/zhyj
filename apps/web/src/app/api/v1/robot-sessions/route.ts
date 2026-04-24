@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session in transaction
-    const session = await prisma.$transaction(async (tx) => {
+    const session = await prisma.$transaction(async (tx: any) => {
       const newSession = await tx.robotSession.create({
         data: {
           appointmentId,

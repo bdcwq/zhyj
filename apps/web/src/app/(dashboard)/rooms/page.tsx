@@ -65,7 +65,7 @@ export default function RoomsPage() {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   // ── Debounced search ──
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const fetchRooms = useCallback(async () => {
     setListLoading(true);

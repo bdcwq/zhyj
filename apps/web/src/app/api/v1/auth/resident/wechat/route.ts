@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       where: { id: resident.id },
       include: { residentStores: { include: { store: { select: { id: true, name: true } } } } },
     });
-    const stores: StoreSummary[] = (residentWithStores?.residentStores ?? []).map((a) => ({
+    const stores: StoreSummary[] = (residentWithStores?.residentStores ?? []).map((a: { store: { id: string; name: string } }) => ({
       id: a.store.id,
       name: a.store.name,
     }));

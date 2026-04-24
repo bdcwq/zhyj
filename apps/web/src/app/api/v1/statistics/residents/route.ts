@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
 
     // Merge new counts with cumulative totals
     const typedNewRecords = newRecords as Array<{ date: string; newCount: number }>;
-    const newMap = new Map(typedNewRecords.map((r) => [r.date, toNumber(r.newCount)]));
+    const newMap = new Map(typedNewRecords.map((r: any) => [r.date, toNumber(r.newCount)]));
     const allDates = new Set([...newMap.keys(), ...totalMap.keys()]);
     const records = Array.from(allDates)
       .sort()

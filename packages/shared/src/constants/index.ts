@@ -267,3 +267,116 @@ export const STORE_SWITCH_ERRORS = {
 } as const;
 
 export type StoreSwitchErrorCode = (typeof STORE_SWITCH_ERRORS)[keyof typeof STORE_SWITCH_ERRORS];
+
+// ── Store error codes ──
+export const STORE_ERRORS = {
+  NOT_FOUND: "STORE_001",
+  INVALID_PARAMS: "STORE_002",
+  NAME_EXISTS: "STORE_003",
+  CREATE_FAILED: "STORE_004",
+  UPDATE_FAILED: "STORE_005",
+  DISABLE_FAILED: "STORE_006",
+} as const;
+
+export type StoreErrorCode = (typeof STORE_ERRORS)[keyof typeof STORE_ERRORS];
+
+// ── Schedule statuses ──
+export const SCHEDULE_STATUS = {
+  SCHEDULED: "scheduled",
+  CANCELLED: "cancelled",
+  COMPLETED: "completed",
+} as const;
+
+export type ScheduleStatus = (typeof SCHEDULE_STATUS)[keyof typeof SCHEDULE_STATUS];
+
+// ── Schedule error codes ──
+export const SCHEDULE_ERRORS = {
+  TEMPLATE_NOT_FOUND: "SCHEDULE_001",
+  INVALID_PARAMS: "SCHEDULE_002",
+  CREATE_FAILED: "SCHEDULE_003",
+  UPDATE_FAILED: "SCHEDULE_004",
+  DELETE_FAILED: "SCHEDULE_005",
+  CONFLICT_DETECTED: "SCHEDULE_006",
+  GENERATE_FAILED: "SCHEDULE_007",
+  NOT_FOUND: "SCHEDULE_008",
+  NO_AVAILABLE_STAFF: "SCHEDULE_009",
+} as const;
+
+export type ScheduleErrorCode = (typeof SCHEDULE_ERRORS)[keyof typeof SCHEDULE_ERRORS];
+
+// ── Attendance statuses ──
+export const ATTENDANCE_STATUS = {
+  PENDING: "pending",
+  NORMAL: "normal",
+  LATE: "late",
+  EARLY_LEAVE: "early_leave",
+  LATE_AND_EARLY: "late_and_early",
+  ABSENT: "absent",
+} as const;
+
+export type AttendanceStatus = (typeof ATTENDANCE_STATUS)[keyof typeof ATTENDANCE_STATUS];
+
+// ── Attendance error codes ──
+export const ATTENDANCE_ERRORS = {
+  NOT_CLOCKED_IN: "ATTENDANCE_001",
+  ALREADY_CLOCKED_IN: "ATTENDANCE_002",
+  ALREADY_CLOCKED_OUT: "ATTENDANCE_003",
+  SCHEDULE_NOT_FOUND: "ATTENDANCE_004",
+  NO_SCHEDULE_TODAY: "ATTENDANCE_005",
+  QUERY_FAILED: "ATTENDANCE_006",
+  INVALID_PARAMS: "ATTENDANCE_007",
+  CREATE_FAILED: "ATTENDANCE_008",
+} as const;
+
+export type AttendanceErrorCode = (typeof ATTENDANCE_ERRORS)[keyof typeof ATTENDANCE_ERRORS];
+
+// ── Leave statuses ──
+export const LEAVE_STATUS = {
+  PENDING: "pending",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+} as const;
+
+export type LeaveStatus = (typeof LEAVE_STATUS)[keyof typeof LEAVE_STATUS];
+
+// ── Leave types ──
+export const LEAVE_TYPE = {
+  SICK: "sick",
+  PERSONAL: "personal",
+  ANNUAL: "annual",
+  OTHER: "other",
+} as const;
+
+export type LeaveType = (typeof LEAVE_TYPE)[keyof typeof LEAVE_TYPE];
+
+// ── Transfer error codes ──
+export const TRANSFER_ERRORS = {
+  STAFF_NOT_FOUND: "TRANSFER_001",
+  STORE_NOT_ASSIGNED: "TRANSFER_002",
+  LAST_STORE: "TRANSFER_003",
+  TRANSFER_FAILED: "TRANSFER_004",
+} as const;
+
+export type TransferErrorCode = (typeof TRANSFER_ERRORS)[keyof typeof TRANSFER_ERRORS];
+
+// ── Leave error codes ──
+export const LEAVE_ERRORS = {
+  NOT_FOUND: "LEAVE_001",
+  INVALID_PARAMS: "LEAVE_002",
+  OVERLAP_DETECTED: "LEAVE_003",
+  CREATE_FAILED: "LEAVE_004",
+  UPDATE_FAILED: "LEAVE_005",
+  QUERY_FAILED: "LEAVE_006",
+  APPROVE_FAILED: "LEAVE_007",
+  REJECT_FAILED: "LEAVE_008",
+} as const;
+
+export type LeaveErrorCode = (typeof LEAVE_ERRORS)[keyof typeof LEAVE_ERRORS];
+
+// ── Export error codes ──
+export const EXPORT_ERRORS = {
+  INVALID_PARAMS: "EXPORT_001",
+  GENERATION_FAILED: "EXPORT_002",
+} as const;
+
+export type ExportErrorCode = (typeof EXPORT_ERRORS)[keyof typeof EXPORT_ERRORS];

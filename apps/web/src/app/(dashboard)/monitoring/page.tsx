@@ -133,7 +133,24 @@ export default function MonitoringPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">体质监测</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">体质监测</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const params = new URLSearchParams();
+            if (selectedResident) params.set("residentId", selectedResident);
+            const qs = params.toString();
+            window.open(`/api/v1/export/monitoring${qs ? `?${qs}` : ""}`, "_blank");
+          }}
+        >
+          <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          导出
+        </Button>
+      </div>
 
       {/* Resident search */}
       <div className="bg-white rounded-lg border p-4">

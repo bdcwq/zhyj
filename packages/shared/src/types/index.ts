@@ -118,6 +118,58 @@ export interface RobotSession extends Timestamps {
   storeId: string;
 }
 
+// ── ShiftTemplate ──
+export interface ShiftTemplate extends Timestamps {
+  id: string;
+  name: string;
+  storeId: string;
+  shifts: string; // JSON string
+  effectiveDays: string; // JSON string
+  deletedAt?: Date | null;
+}
+
+// ── Schedule ──
+export interface Schedule extends Timestamps {
+  id: string;
+  date: Date;
+  staffId: string;
+  storeId: string;
+  shiftType: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  templateId?: string | null;
+}
+
+// ── Attendance ──
+export interface Attendance extends Timestamps {
+  id: string;
+  staffId: string;
+  storeId: string;
+  scheduleId?: string | null;
+  date: Date;
+  clockIn?: Date | null;
+  clockOut?: Date | null;
+  status: string;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  workedMinutes?: number | null;
+}
+
+// ── Leave ──
+export interface Leave extends Timestamps {
+  id: string;
+  staffId: string;
+  storeId: string;
+  type: string;
+  startDate: Date;
+  endDate: Date;
+  status: string;
+  reason?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: Date | null;
+}
+
 // ── API response envelope ──
 export interface ApiResponse<T = unknown> {
   success: boolean;

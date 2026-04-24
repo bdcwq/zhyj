@@ -7,6 +7,11 @@ import { STAFF_ROLES } from "@zhyj/shared";
 
 /* ─── Types ─── */
 
+interface StoreBasic {
+  id: string;
+  name: string;
+}
+
 interface StoreInfo {
   storeId: string;
   store: { id: string; name: string };
@@ -97,8 +102,17 @@ export default function StaffPage() {
   } | null>(null);
   const [disableSubmitting, setDisableSubmitting] = useState(false);
 
+  // ── Transfer modal state ──
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferStaff, setTransferStaff] = useState<StaffRecord | null>(null);
+  const [transferFromStoreId, setTransferFromStoreId] = useState("");
+  const [transferToStoreId, setTransferToStoreId] = useState("");
+  const [allStores, setAllStores] = useState<StoreBasic[]>([]);
+  const [transferSubmitting, setTransferSubmitting] = useState(false);
+  const [transferError, setTransferError] = useState("");
+
   // ── Debounced search ──
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const fetchStaff = useCallback(async () => {
     setListLoading(true);
@@ -275,6 +289,69 @@ export default function StaffPage() {
     }
   }
 
+  // ── Transfer handlers ──
+
+  async function openTransferModal(staff: StaffRecord) {
+    setTransferStaff(staff);
+    setTransferError("");
+    setShowTransferModal(true);
+    // Pre-populate fromStore from staff's first store
+    if (staff.staffStores.length > 0) {
+      setTransferFromStoreId(staff.staffStores[0].storeId);
+    } else {
+      setTransferFromStoreId("");
+    }
+    setTransferToStoreId("");
+    // Fetch all stores for the toStore dropdown
+    try {
+      const res = await fetch("/api/v1/stores", { credentials: "include" });
+      const json = await res.json();
+      if (json.success && json.data?.records) {
+        setAllStores(json.data.records.map((s: StoreBasic) => ({ id: s.id, name: s.name })));
+      }
+    } catch {
+      setTransferError("获取店铺列表失败");
+    }
+  }
+
+  function closeTransferModal() {
+    setShowTransferModal(false);
+    setTransferStaff(null);
+    setTransferError("");
+  }
+
+  async function handleTransferSubmit() {
+    if (!transferStaff || !transferFromStoreId || !transferToStoreId) {
+      setTransferError("请选择原店铺和目标店铺");
+      return;
+    }
+    if (transferFromStoreId === transferToStoreId) {
+      setTransferError("原店铺和目标店铺不能相同");
+      return;
+    }
+    setTransferSubmitting(true);
+    setTransferError("");
+    try {
+      const res = await fetch(`/api/v1/staff/${transferStaff.id}/transfer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ fromStoreId: transferFromStoreId, toStoreId: transferToStoreId }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        closeTransferModal();
+        fetchStaff();
+      } else {
+        setTransferError(json.error?.message || "调动失败");
+      }
+    } catch {
+      setTransferError("网络错误，请重试");
+    } finally {
+      setTransferSubmitting(false);
+    }
+  }
+
   // ── Derived ──
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const isAdmin = role === STAFF_ROLES.ADMIN;
@@ -417,6 +494,15 @@ export default function StaffPage() {
                     >
                       编辑
                     </button>
+                    {isAdmin && staff.staffStores.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => openTransferModal(staff)}
+                        className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                      >
+                        跨店调动
+                      </button>
+                    )}
                     {staff.id !== user?.staffId && (
                       <button
                         type="button"
@@ -640,6 +726,92 @@ export default function StaffPage() {
                 )}
                 {disableTarget.disabled ? "禁用" : "启用"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Transfer Modal ── */}
+      {showTransferModal && transferStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={closeTransferModal} />
+          {/* Dialog */}
+          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">跨店调动</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                员工：{transferStaff.name}
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              {transferError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                  {transferError}
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="transfer-from" className="block text-sm font-medium text-gray-700 mb-1">
+                  原店铺
+                </label>
+                <select
+                  id="transfer-from"
+                  value={transferFromStoreId}
+                  onChange={(e) => setTransferFromStoreId(e.target.value)}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                >
+                  {transferStaff.staffStores.map((s) => (
+                    <option key={s.storeId} value={s.storeId}>
+                      {s.store.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="transfer-to" className="block text-sm font-medium text-gray-700 mb-1">
+                  目标店铺
+                </label>
+                <select
+                  id="transfer-to"
+                  value={transferToStoreId}
+                  onChange={(e) => setTransferToStoreId(e.target.value)}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                >
+                  <option value="">请选择目标店铺</option>
+                  {allStores
+                    .filter((s) => s.id !== transferFromStoreId)
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeTransferModal}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  disabled={transferSubmitting}
+                  onClick={handleTransferSubmit}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                >
+                  {transferSubmitting && (
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  确认调动
+                </button>
+              </div>
             </div>
           </div>
         </div>

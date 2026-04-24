@@ -32,7 +32,8 @@ export async function POST(
     }
 
     // Call markNoShow in a transaction
-    await prisma.$transaction(async (tx) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await prisma.$transaction(async (tx: any) => {
       await markNoShow(tx, id, ctx.staffId!, ctx.storeId);
     });
 

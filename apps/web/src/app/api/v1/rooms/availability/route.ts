@@ -50,9 +50,9 @@ export async function GET(request: NextRequest) {
 
     // For each machine, find non-cancelled appointments on that date
     const roomsWithAvailability = await Promise.all(
-      rooms.map(async (room) => {
+      rooms.map(async (room: any) => {
         const machinesWithSlots = await Promise.all(
-          room.machines.map(async (machine) => {
+          room.machines.map(async (machine: any) => {
             const appointments = await prisma.appointment.findMany({
               where: {
                 machineId: machine.id,
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
               name: machine.name,
               status: machine.status,
               available,
-              bookedSlots: appointments.map((a) => a.scheduledAt.toISOString()),
+              bookedSlots: appointments.map((a: { scheduledAt: Date }) => a.scheduledAt.toISOString()),
             };
           })
         );

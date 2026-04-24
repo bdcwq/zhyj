@@ -262,7 +262,19 @@ export default function AppointmentsPage() {
 
       {/* Appointments list */}
       <div className="bg-white rounded-lg border p-4">
-        <h3 className="font-medium mb-3">预约列表</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium">预约列表</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open("/api/v1/export/appointments", "_blank")}
+          >
+            <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            导出
+          </Button>
+        </div>
         {loading ? (
           <p className="text-sm text-gray-400">加载中...</p>
         ) : appointments.length === 0 ? (

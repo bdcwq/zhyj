@@ -13,7 +13,7 @@ async function getStaffStores(staffId: string): Promise<StoreSummary[]> {
     where: { staffId },
     include: { store: { select: { id: true, name: true } } },
   });
-  return assignments.map((a) => ({ id: a.store.id, name: a.store.name }));
+  return assignments.map((a: { store: { id: string; name: string } }) => ({ id: a.store.id, name: a.store.name }));
 }
 
 export async function POST(request: NextRequest) {

@@ -18,7 +18,12 @@ const managementItems = [
   { href: "/staff", label: "员工管理" },
   { href: "/rooms", label: "房间管理" },
   { href: "/devices", label: "设备管理" },
-  // S04 will add: /residents-management
+  { href: "/residents-management", label: "居民管理" },
+  { href: "/stores", label: "店铺管理" },
+  { href: "/schedules", label: "排班管理" },
+  { href: "/attendance", label: "考勤管理" },
+  { href: "/leaves", label: "请假管理" },
+  { href: "/cross-store-report", label: "跨店报表" },
 ];
 
 export default function DashboardLayout({

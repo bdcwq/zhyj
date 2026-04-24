@@ -74,7 +74,7 @@ async function handleUpdate(
     }
 
     // Update in transaction
-    const session = await prisma.$transaction(async (tx) => {
+    const session = await prisma.$transaction(async (tx: any) => {
       const updateData: Record<string, unknown> = { status };
 
       if (status === "completed") {
