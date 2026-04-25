@@ -24,6 +24,7 @@ const managementItems = [
   { href: "/attendance", label: "考勤管理" },
   { href: "/leaves", label: "请假管理" },
   { href: "/cross-store-report", label: "跨店报表" },
+  { href: "/activities", label: "活动管理" },
 ];
 
 export default function DashboardLayout({

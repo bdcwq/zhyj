@@ -380,3 +380,58 @@ export const EXPORT_ERRORS = {
 } as const;
 
 export type ExportErrorCode = (typeof EXPORT_ERRORS)[keyof typeof EXPORT_ERRORS];
+
+// ── Activity types ──
+export const ACTIVITY_TYPE = {
+  COURSE: "course",
+  EXERCISE: "exercise",
+  EXPERIENCE: "experience",
+  LIVE_STREAM: "live_stream",
+  CUSTOM: "custom",
+} as const;
+
+export type ActivityType = (typeof ACTIVITY_TYPE)[keyof typeof ACTIVITY_TYPE];
+
+// ── Activity statuses ──
+export const ACTIVITY_STATUS = {
+  DRAFT: "draft",
+  PUBLISHED: "published",
+  CANCELLED: "cancelled",
+  COMPLETED: "completed",
+} as const;
+
+export type ActivityStatus = (typeof ACTIVITY_STATUS)[keyof typeof ACTIVITY_STATUS];
+
+// ── Activity registration statuses ──
+export const ACTIVITY_REGISTRATION_STATUS = {
+  REGISTERED: "registered",
+  CHECKED_IN: "checked_in",
+  NO_SHOW: "no_show",
+  CANCELLED: "cancelled",
+} as const;
+
+export type ActivityRegistrationStatus = (typeof ACTIVITY_REGISTRATION_STATUS)[keyof typeof ACTIVITY_REGISTRATION_STATUS];
+
+// ── Activity error codes ──
+export const ACTIVITY_ERRORS = {
+  FULL: "ACTIVITY_001",
+  CANCELLED: "ACTIVITY_002",
+  NOT_PUBLISHED: "ACTIVITY_003",
+  REGISTRATION_CLOSED: "ACTIVITY_004",
+  ALREADY_REGISTERED: "ACTIVITY_005",
+  NO_SHOW_LIMIT: "ACTIVITY_006",
+  NOT_REGISTERED: "ACTIVITY_007",
+  ALREADY_CHECKED_IN: "ACTIVITY_008",
+  NOT_STARTED: "ACTIVITY_009",
+  NOT_FOUND: "ACTIVITY_010",
+  INSTRUCTOR_CONFLICT: "ACTIVITY_011",
+  OPERATION_FAILED: "ACTIVITY_012",
+} as const;
+
+export type ActivityErrorCode = (typeof ACTIVITY_ERRORS)[keyof typeof ACTIVITY_ERRORS];
+
+// ── Activity no-show limit ──
+export const ACTIVITY_NO_SHOW_LIMIT = 2;
+
+// ── Activity check-in grace minutes ──
+export const ACTIVITY_CHECKIN_GRACE_MINUTES = 20;

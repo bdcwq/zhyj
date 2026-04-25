@@ -37,6 +37,22 @@ interface ResidentRecord {
   totalCount: number;
 }
 
+interface ActivityStats {
+  activityCount: number;
+  totalRegistrations: number;
+  checkedInCount: number;
+  noShowCount: number;
+  checkInRate: number;
+  noShowRate: number;
+  breakdown: ActivityTypeBreakdown[];
+}
+
+interface ActivityTypeBreakdown {
+  type: string;
+  count: number;
+  totalParticipants: number;
+}
+
 type Period = "daily" | "weekly" | "monthly";
 
 // ── Helpers ──
@@ -73,6 +89,22 @@ const STATUS_LABELS: Record<string, string> = {
   noShow: "爽约",
 };
 
+const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  course: "课程",
+  exercise: "运动",
+  experience: "体验",
+  live_stream: "直播",
+  custom: "自定义",
+};
+
+const ACTIVITY_TYPE_COLORS: Record<string, string> = {
+  course: "#3b82f6",
+  exercise: "#34d399",
+  experience: "#a78bfa",
+  live_stream: "#f472b6",
+  custom: "#fbbf24",
+};
+
 // ── Component ──
 
 export default function StatisticsPage() {
@@ -85,6 +117,7 @@ export default function StatisticsPage() {
   const [monitoring, setMonitoring] = useState<MonitoringRecord[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [residents, setResidents] = useState<ResidentRecord[]>([]);
+  const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,11 +132,12 @@ export default function StatisticsPage() {
         dateTo,
       }).toString();
 
-      const [overviewRes, monRes, apptRes, resRes] = await Promise.all([
+      const [overviewRes, monRes, apptRes, resRes, actRes] = await Promise.all([
         fetchWithAuth(`/api/v1/statistics/overview?date=${overviewDate}`),
         fetchWithAuth(`/api/v1/statistics/monitoring?${params}`),
         fetchWithAuth(`/api/v1/statistics/appointments?${params}`),
         fetchWithAuth(`/api/v1/statistics/residents?${params}`),
+        fetchWithAuth(`/api/v1/statistics/activities?${params}`),
       ]);
 
       // Check for auth errors
@@ -112,20 +146,22 @@ export default function StatisticsPage() {
         return;
       }
 
-      const [overviewJson, monJson, apptJson, resJson] = await Promise.all([
+      const [overviewJson, monJson, apptJson, resJson, actJson] = await Promise.all([
         overviewRes.json(),
         monRes.json(),
         apptRes.json(),
         resRes.json(),
+        actRes.json(),
       ]);
 
       if (overviewJson.success) setOverview(overviewJson.data);
       if (monJson.success) setMonitoring(monJson.data?.records || []);
       if (apptJson.success) setAppointments(apptJson.data?.records || []);
       if (resJson.success) setResidents(resJson.data?.records || []);
+      if (actJson.success) setActivityStats(actJson.data);
 
-      if (!overviewJson.success || !monJson.success || !apptJson.success || !resJson.success) {
-        const msgs = [overviewJson, monJson, apptJson, resJson]
+      if (!overviewJson.success || !monJson.success || !apptJson.success || !resJson.success || !actJson.success) {
+        const msgs = [overviewJson, monJson, apptJson, resJson, actJson]
           .filter((j) => !j.success)
           .map((j) => j.error?.message)
           .filter(Boolean);
@@ -283,6 +319,75 @@ export default function StatisticsPage() {
           </div>
         </div>
       )}
+
+      {/* Activity statistics section */}
+      {!loading && (
+        <div className="space-y-6">
+          <h3 className="border-b pb-2 text-lg font-semibold">活动统计</h3>
+
+          {/* Activity overview cards */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="rounded-xl border bg-white p-4 shadow-sm">
+              <p className="text-sm text-gray-500">活动场次</p>
+              <p className="mt-1 text-2xl font-bold text-blue-600">
+                {activityStats?.activityCount ?? 0}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-white p-4 shadow-sm">
+              <p className="text-sm text-gray-500">参与人次</p>
+              <p className="mt-1 text-2xl font-bold text-violet-600">
+                {activityStats?.totalRegistrations ?? 0}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-white p-4 shadow-sm">
+              <p className="text-sm text-gray-500">签到率</p>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">
+                {activityStats?.checkInRate ?? 0}%
+              </p>
+            </div>
+            <div className="rounded-xl border bg-white p-4 shadow-sm">
+              <p className="text-sm text-gray-500">爽约率</p>
+              <p className="mt-1 text-2xl font-bold text-amber-600">
+                {activityStats?.noShowRate ?? 0}%
+              </p>
+            </div>
+          </div>
+
+          {/* Activity charts */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Activity count by type */}
+            <div className="rounded-xl border bg-white p-5 shadow-sm">
+              <h4 className="mb-4 font-semibold">活动类型分布</h4>
+              {(!activityStats?.breakdown || activityStats.breakdown.length === 0) ? (
+                <p className="py-12 text-center text-sm text-gray-400">暂无活动数据</p>
+              ) : (
+                <ActivityTypeChart
+                  data={activityStats.breakdown.map((b) => ({
+                    type: ACTIVITY_TYPE_LABELS[b.type] || b.type,
+                    count: b.count,
+                    fill: ACTIVITY_TYPE_COLORS[b.type] || "#94a3b8",
+                  }))}
+                />
+              )}
+            </div>
+
+            {/* Participation by type */}
+            <div className="rounded-xl border bg-white p-5 shadow-sm">
+              <h4 className="mb-4 font-semibold">各类型参与情况</h4>
+              {(!activityStats?.breakdown || activityStats.breakdown.length === 0) ? (
+                <p className="py-12 text-center text-sm text-gray-400">暂无活动数据</p>
+              ) : (
+                <ActivityParticipationChart
+                  data={activityStats.breakdown.map((b) => ({
+                    type: ACTIVITY_TYPE_LABELS[b.type] || b.type,
+                    registrations: b.totalParticipants,
+                  }))}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -301,6 +406,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
 
 function MonitoringChart({
@@ -395,6 +501,46 @@ function ResidentsChart({
           dot={{ r: 3 }}
         />
       </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+function ActivityTypeChart({
+  data,
+}: {
+  data: { type: string; count: number; fill: string }[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <XAxis dataKey="type" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 11 }} />
+        <Tooltip />
+        <Bar dataKey="count" name="活动场次" radius={[4, 4, 0, 0]}>
+          {data.map((entry, index) => (
+            <Cell key={index} fill={entry.fill} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function ActivityParticipationChart({
+  data,
+}: {
+  data: { type: string; registrations: number }[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <XAxis dataKey="type" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 11 }} />
+        <Tooltip />
+        <Bar dataKey="registrations" name="参与人次" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+      </BarChart>
     </ResponsiveContainer>
   );
 }

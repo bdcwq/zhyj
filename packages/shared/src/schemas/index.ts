@@ -521,3 +521,83 @@ export const exportMonitoringQuerySchema = z.object({
 });
 
 export type ExportMonitoringQueryInput = z.infer<typeof exportMonitoringQuerySchema>;
+
+// ── Activity schemas ──
+export const createActivitySchema = z
+  .object({
+    name: z.string().min(1, "活动名称不能为空").max(100, "活动名称过长"),
+    description: z.string().max(500, "描述过长").optional(),
+    type: z.enum(["course", "exercise", "experience", "live_stream", "custom"], {
+      message: "活动类型无效",
+    }),
+    customType: z.string().max(50, "自定义类型名称过长").optional(),
+    activityDate: z.string().min(1, "活动日期不能为空"),
+    startTime: z.string().regex(/^\d{2}:\d{2}$/, "开始时间格式应为 HH:mm"),
+    endTime: z.string().regex(/^\d{2}:\d{2}$/, "结束时间格式应为 HH:mm"),
+    maxCapacity: z.coerce.number().int().min(1, "最大人数至少为1").max(500, "最大人数不能超过500"),
+    liveStreamUrl: z.string().max(500, "直播链接过长").optional(),
+    instructorId: z.string().optional(),
+  })
+  .refine((data) => data.endTime > data.startTime, {
+    message: "结束时间必须晚于开始时间",
+    path: ["endTime"],
+  })
+  .refine((data) => data.type !== "custom" || data.customType, {
+    message: "自定义类型需要填写类型名称",
+    path: ["customType"],
+  });
+
+export type CreateActivityInput = z.infer<typeof createActivitySchema>;
+
+export const updateActivitySchema = z
+  .object({
+    name: z.string().min(1).max(100).optional(),
+    description: z.string().max(500).optional(),
+    customType: z.string().max(50).optional(),
+    activityDate: z.string().min(1).optional(),
+    startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    maxCapacity: z.coerce.number().int().min(1).max(500).optional(),
+    liveStreamUrl: z.string().max(500).optional().nullable(),
+    instructorId: z.string().optional().nullable(),
+  })
+  .refine((data) => {
+    if (data.startTime && data.endTime) return data.endTime > data.startTime;
+    return true;
+  }, {
+    message: "结束时间必须晚于开始时间",
+    path: ["endTime"],
+  });
+
+export type UpdateActivityInput = z.infer<typeof updateActivitySchema>;
+
+export const activityListQuerySchema = z.object({
+  date: z.string().optional(),
+  type: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export type ActivityListQueryInput = z.infer<typeof activityListQuerySchema>;
+
+// ── Activity registration schema ──
+export const registerActivitySchema = z.object({
+  residentId: z.string().min(1, "居民ID不能为空"),
+});
+
+export type RegisterActivityInput = z.infer<typeof registerActivitySchema>;
+
+export const checkInActivitySchema = z.object({
+  residentId: z.string().min(1, "居民ID不能为空"),
+});
+
+export type CheckInActivityInput = z.infer<typeof checkInActivitySchema>;
+
+export const myRegistrationsQuerySchema = z.object({
+  status: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export type MyRegistrationsQueryInput = z.infer<typeof myRegistrationsQuerySchema>;

@@ -36,6 +36,8 @@ model Store {
   schedules       Schedule[]
   attendances     Attendance[]
   leaves          Leave[]
+  activities      Activity[]
+  activityRegistrations ActivityRegistration[]
 }
 
 // ── Room ───────────────────────────────────────────────────────────────
@@ -88,6 +90,7 @@ model Staff {
   attendances  Attendance[]
   leaves       Leave[]
   approvedLeaves Leave[] @relation("LeaveApprover")
+  activities   Activity[]
 }
 
 // ── StaffStore (junction) ─────────────────────────────────────────────
@@ -132,6 +135,7 @@ model Resident {
   residentStores    ResidentStore[]
   monitoringRecords MonitoringRecord[]
   appointments      Appointment[]
+  activityRegistrations ActivityRegistration[]
 }
 
 // ── MonitoringRecord ───────────────────────────────────────────────────
@@ -347,4 +351,54 @@ model Leave {
   @@index([storeId, status])
   @@index([staffId, status])
   @@index([startDate, endDate])
+}
+
+// ── Activity ───────────────────────────────────────────────────────────
+model Activity {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  type           String   @default("course") // course, exercise, experience, live_stream, custom
+  customType     String?
+  storeId        String
+  activityDate   DateTime
+  startTime      String   // "HH:mm"
+  endTime        String   // "HH:mm"
+  maxCapacity    Int      @default(20)
+  currentCapacity Int     @default(0)
+  liveStreamUrl  String?
+  status         String   @default("draft") // draft, published, cancelled, completed
+  instructorId   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  store         Store                  @relation(fields: [storeId], references: [id])
+  instructor    Staff?                 @relation(fields: [instructorId], references: [id])
+  registrations ActivityRegistration[]
+
+  @@index([storeId, status])
+  @@index([storeId, activityDate])
+  @@index([status, activityDate])
+}
+
+// ── ActivityRegistration ──────────────────────────────────────────────
+model ActivityRegistration {
+  id           String    @id @default(cuid())
+  activityId   String
+  residentId   String
+  storeId      String
+  status       String    @default("registered") // registered, checked_in, no_show, cancelled
+  registeredAt DateTime  @default(now())
+  checkedInAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  activity Activity @relation(fields: [activityId], references: [id])
+  resident Resident @relation(fields: [residentId], references: [id])
+  store    Store    @relation(fields: [storeId], references: [id])
+
+  @@unique([activityId, residentId])
+  @@index([residentId, status])
+  @@index([storeId, status])
 }

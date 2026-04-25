@@ -42,6 +42,12 @@
         <text class="feature-title">健康档案</text>
         <text class="feature-desc">管理您的健康信息</text>
       </view>
+
+      <view class="feature-card" @tap="goToActivities">
+        <text class="feature-icon">🎯</text>
+        <text class="feature-title">活动</text>
+        <text class="feature-desc">查看课程表和报名活动</text>
+      </view>
     </view>
   </view>
 </template>
@@ -97,6 +103,10 @@ function goToTreatment() {
 
 function goToHealth() {
   uni.navigateTo({ url: '/pages/health/health' })
+}
+
+function goToActivities() {
+  uni.navigateTo({ url: '/pages/activities/activities' })
 }
 </script>
 
