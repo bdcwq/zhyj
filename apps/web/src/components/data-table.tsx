@@ -16,7 +16,7 @@ import {
 
 /* ─── Types ─── */
 
-interface Column<T> {
+export interface Column<T> {
   key: string;
   header: string;
   render?: (row: T) => React.ReactNode;
