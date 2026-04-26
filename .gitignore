@@ -29,3 +29,6 @@ coverage/
 .cache/
 tmp/
 .turbo/
+
+# ── GSD baseline (auto-generated) ──
+.mcp.json
