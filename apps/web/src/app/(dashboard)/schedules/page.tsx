@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { FormEvent } from "react";
+import { Plus, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { PageHeader } from "@/components/page-header";
+import { DataTable, type Column } from "@/components/data-table";
+import { FormModal } from "@/components/form-modal";
+import { ErrorBanner } from "@/components/error-banner";
+import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
 
 /* ─── Types ─── */
 
@@ -96,10 +103,10 @@ const DAY_LABELS = [
   "周日",
 ];
 
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: "已排班",
-  cancelled: "已取消",
-  completed: "已完成",
+const SCHEDULE_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  scheduled: { label: "已排班", color: "bg-apple-primary/10 text-apple-primary" },
+  cancelled: { label: "已取消", color: "bg-apple-muted text-apple-muted" },
+  completed: { label: "已完成", color: "bg-apple-success/10 text-apple-success" },
 };
 
 const STATUS_OPTIONS = [
@@ -123,6 +130,19 @@ const EMPTY_TEMPLATE_FORM: TemplateForm = {
 };
 
 const PAGE_SIZE = 20;
+
+/* ─── Apple token input classes ─── */
+
+const INPUT_CLASSES =
+  "block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary transition-colors";
+
+const SELECT_CLASSES =
+  "rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary";
+
+const SELECT_FULL_CLASSES =
+  "block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary";
+
+/* ─── Helpers ─── */
 
 function formatDate(date: Date): string {
   return date.toISOString().split("T")[0];
@@ -334,176 +354,154 @@ function TemplateManager({ canManage }: { canManage: boolean }) {
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  const columns: Column<ShiftTemplateRecord>[] = [
+    {
+      key: "name",
+      header: "模板名称",
+      render: (t) => <span className="font-medium text-foreground">{t.name}</span>,
+    },
+    {
+      key: "shifts",
+      header: "班次数",
+      render: (t) => <span className="text-muted-foreground">{t.shifts.length} 个班次</span>,
+    },
+    {
+      key: "effectiveDays",
+      header: "生效日",
+      render: (t) => <span className="text-muted-foreground">{effectiveDaysLabel(t.effectiveDays)}</span>,
+    },
+    {
+      key: "createdAt",
+      header: "创建时间",
+      render: (t) => <span className="text-muted-foreground">{new Date(t.createdAt).toLocaleDateString("zh-CN")}</span>,
+    },
+    ...(canManage
+      ? [
+          {
+              key: "actions" as const,
+              header: "",
+              render: (t: ShiftTemplateRecord) => (
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(t)}
+                    className="text-sm font-medium text-apple-primary hover:text-apple-primary/80 transition-colors"
+                  >
+                    编辑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
+                    className="text-sm font-medium text-apple-error hover:text-apple-error/80 transition-colors"
+                  >
+                    删除
+                  </button>
+                </div>
+              ),
+            },
+        ]
+      : []),
+  ];
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">管理轮班模板，定义班次时段和生效日期</p>
+        <p className="text-sm text-muted-foreground">管理轮班模板，定义班次时段和生效日期</p>
         {canManage && (
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
+          <Button onClick={openCreateModal}>
+            <Plus className="h-4 w-4" />
             创建模板
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Error banner */}
-      {listError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {listError}
-          <button type="button" onClick={fetchTemplates} className="ml-2 underline hover:no-underline">
-            重试
-          </button>
-        </div>
-      )}
+      {listError && <ErrorBanner message={listError} onRetry={fetchTemplates} />}
 
       {/* Templates table */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">模板名称</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">班次数</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">生效日</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">创建时间</th>
-              {canManage && (
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">操作</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {listLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={`skel-${i}`}>
-                  {Array.from({ length: canManage ? 5 : 4 }).map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-gray-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : templates.length === 0 ? (
-              <tr>
-                <td colSpan={canManage ? 5 : 4} className="px-4 py-12 text-center text-sm text-gray-400">
-                  暂无排班模板
-                </td>
-              </tr>
-            ) : (
-              templates.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                    {t.name}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                    {t.shifts.length} 个班次
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                    {effectiveDaysLabel(t.effectiveDays)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                    {new Date(t.createdAt).toLocaleDateString("zh-CN")}
-                  </td>
-                  {canManage && (
-                    <td className="whitespace-nowrap px-4 py-3 text-right space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(t)}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
-                        className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
-                      >
-                        删除
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <DataTable
+          columns={columns}
+          data={templates}
+          loading={listLoading}
+          error={undefined}
+          emptyMessage="暂无排班模板"
+        />
 
         {/* Pagination */}
         {!listLoading && total > 0 && (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-sm text-gray-500">
+          <div className="flex items-center justify-between border-t border-border bg-muted px-4 py-3">
+            <p className="text-sm text-muted-foreground">
               共 {total} 条，第 {currentPage} / {totalPages} 页
             </p>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 disabled={currentPage <= 1}
                 onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
+                <ChevronLeft className="h-4 w-4" />
                 上一页
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 disabled={currentPage >= totalPages}
                 onClick={() => setOffset((o) => o + PAGE_SIZE)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 下一页
-              </button>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Create / Edit Modal */}
+      {/* Create / Edit Modal — stays custom because dynamic shift rows are too complex for FormModal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal} />
-          <div className="relative z-10 w-full max-w-lg rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-100 shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="relative z-10 w-full max-w-lg rounded-xl bg-card shadow-2xl ring-1 ring-foreground/5 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-border shrink-0">
+              <h3 className="text-lg font-semibold text-foreground">
                 {modalMode === "create" ? "创建排班模板" : "编辑排班模板"}
               </h3>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               {formError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                  {formError}
-                </div>
+                <ErrorBanner message={formError} />
               )}
 
               {/* Name */}
               <div>
-                <label htmlFor="template-name" className="block text-sm font-medium text-gray-700 mb-1">
-                  模板名称 <span className="text-red-500">*</span>
+                <label htmlFor="template-name" className="block text-sm font-medium text-foreground mb-1">
+                  模板名称 <span className="text-apple-error">*</span>
                 </label>
                 <input
                   id="template-name"
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  className={INPUT_CLASSES}
                   placeholder="例如：标准工作周"
                 />
               </div>
 
               {/* Shifts */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">班次列表</label>
+                <label className="block text-sm font-medium text-foreground mb-2">班次列表</label>
                 <div className="space-y-2">
                   {form.shifts.map((shift, idx) => (
-                    <div key={idx} className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg">
+                    <div key={idx} className="flex items-start gap-2 p-3 bg-muted rounded-lg">
                       <div className="flex-1 grid grid-cols-4 gap-2">
                         <select
                           value={shift.type}
                           onChange={(e) => updateShiftRow(idx, "type", e.target.value)}
-                          className="col-span-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          className="col-span-1 rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                         >
                           {SHIFT_TYPE_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -513,13 +511,13 @@ function TemplateManager({ canManage }: { canManage: boolean }) {
                           type="time"
                           value={shift.startTime}
                           onChange={(e) => updateShiftRow(idx, "startTime", e.target.value)}
-                          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          className="rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                         />
                         <input
                           type="time"
                           value={shift.endTime}
                           onChange={(e) => updateShiftRow(idx, "endTime", e.target.value)}
-                          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          className="rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                         />
                         <input
                           type="number"
@@ -527,7 +525,7 @@ function TemplateManager({ canManage }: { canManage: boolean }) {
                           max={99}
                           value={shift.requiredStaff}
                           onChange={(e) => updateShiftRow(idx, "requiredStaff", parseInt(e.target.value) || 1)}
-                          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          className="rounded-md border border-border bg-card px-2 py-1.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                           placeholder="人数"
                         />
                       </div>
@@ -535,7 +533,7 @@ function TemplateManager({ canManage }: { canManage: boolean }) {
                         type="button"
                         onClick={() => removeShiftRow(idx)}
                         disabled={form.shifts.length <= 1}
-                        className="mt-1 text-gray-400 hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="mt-1 text-muted-foreground hover:text-apple-error disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         title="删除班次"
                       >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -548,7 +546,7 @@ function TemplateManager({ canManage }: { canManage: boolean }) {
                 <button
                   type="button"
                   onClick={addShiftRow}
-                  className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  className="mt-2 text-sm font-medium text-apple-primary hover:text-apple-primary/80 transition-colors"
                 >
                   + 添加班次
                 </button>
@@ -556,7 +554,7 @@ function TemplateManager({ canManage }: { canManage: boolean }) {
 
               {/* Effective days */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">生效日</label>
+                <label className="block text-sm font-medium text-foreground mb-2">生效日</label>
                 <div className="flex flex-wrap gap-2">
                   {DAY_LABELS.map((label, idx) => {
                     const day = idx + 1;
@@ -566,8 +564,8 @@ function TemplateManager({ canManage }: { canManage: boolean }) {
                         key={day}
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors ${
                           checked
-                            ? "border-blue-500 bg-blue-50 text-blue-700"
-                            : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"
+                            ? "border-primary bg-primary/5 text-apple-primary"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/50"
                         }`}
                       >
                         <input
@@ -585,26 +583,19 @@ function TemplateManager({ canManage }: { canManage: boolean }) {
 
               {/* Actions */}
               <div className="flex justify-end gap-3 pt-2">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={closeModal}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   取消
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={formSubmitting}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
-                  {formSubmitting && (
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  )}
                   {modalMode === "create" ? "创建" : "保存"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -612,40 +603,18 @@ function TemplateManager({ canManage }: { canManage: boolean }) {
       )}
 
       {/* Delete confirmation dialog */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
-          <div className="relative z-10 w-full max-w-sm rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">确认删除</h3>
-            <p className="text-sm text-gray-600 mb-6">
-              确定要删除模板「{deleteTarget.name}」吗？删除后不可恢复。
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                disabled={deleteSubmitting}
-                onClick={handleDelete}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
-                {deleteSubmitting && (
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                )}
-                删除
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <FormModal
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="确认删除"
+        description={deleteTarget ? `确定要删除模板「${deleteTarget.name}」吗？删除后不可恢复。` : ""}
+        onSubmit={handleDelete}
+        submitting={deleteSubmitting}
+        submitLabel="删除"
+        submitButtonClassName="bg-apple-error hover:bg-apple-error/90 text-white"
+      >
+        <></>
+      </FormModal>
     </div>
   );
 }
@@ -870,7 +839,7 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           查看和调整每周排班安排
         </p>
         <div className="flex items-center gap-2">
@@ -878,104 +847,96 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className={SELECT_CLASSES}
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
           {canManage && (
-            <button
-              type="button"
-              onClick={openGenerateModal}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
+            <Button onClick={openGenerateModal}>
+              <CalendarDays className="h-4 w-4" />
               生成排班
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {/* Week navigation */}
       <div className="flex items-center justify-center gap-4">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={goToPrevWeek}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
-          ← 上一周
-        </button>
-        <span className="text-sm font-medium text-gray-900 min-w-[220px] text-center">
+          <ChevronLeft className="h-4 w-4" />
+          上一周
+        </Button>
+        <span className="text-sm font-medium text-foreground min-w-[220px] text-center">
           {formatDate(weekStart)} ~ {formatDate(weekEnd)}
         </span>
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={goToNextWeek}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
-          下一周 →
-        </button>
-        <button
+          下一周
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={goToCurrentWeek}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
           今天
-        </button>
+        </Button>
       </div>
 
       {/* Error banner */}
-      {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
-          <button type="button" onClick={fetchSchedules} className="ml-2 underline hover:no-underline">
-            重试
-          </button>
-        </div>
-      )}
+      {error && <ErrorBanner message={error} onRetry={fetchSchedules} />}
 
       {/* Calendar grid */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         {loading ? (
           <div className="p-12 space-y-3 animate-pulse">
-            <div className="h-6 bg-gray-100 rounded w-1/2" />
-            <div className="h-24 bg-gray-100 rounded" />
-            <div className="h-24 bg-gray-100 rounded" />
+            <div className="h-6 bg-muted rounded w-1/2" />
+            <div className="h-24 bg-muted rounded" />
+            <div className="h-24 bg-muted rounded" />
           </div>
         ) : shiftTypes.length === 0 ? (
-          <div className="px-4 py-12 text-center text-sm text-gray-400">
+          <div className="px-4 py-12 text-center text-sm text-muted-foreground">
             本周暂无排班数据
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 w-24">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-24">
                     班次
                   </th>
                   {weekDays.map((day) => (
                     <th
                       key={day.date}
                       className={`px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider ${
-                        day.isToday ? "text-blue-600 bg-blue-50" : "text-gray-500"
+                        day.isToday ? "text-primary bg-primary/5" : "text-muted-foreground"
                       }`}
                     >
                       <div>{day.label}</div>
-                      <div className="text-[11px] font-normal text-gray-400 mt-0.5">
+                      <div className="text-[11px] font-normal text-muted-foreground/60 mt-0.5">
                         {day.date.slice(5)}
                       </div>
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border">
                 {shiftTypes.map((shiftType) => (
-                  <tr key={shiftType} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-700 whitespace-nowrap">
+                  <tr key={shiftType} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-foreground whitespace-nowrap">
                       {SHIFT_TYPE_LABELS[shiftType] || shiftType}
                     </td>
                     {weekDays.map((day) => {
@@ -985,11 +946,11 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
                         <td
                           key={day.date}
                           className={`px-2 py-2 text-center align-top ${
-                            day.isToday ? "bg-blue-50/50" : ""
+                            day.isToday ? "bg-primary/5" : ""
                           } ${isCancelled ? "opacity-50" : ""}`}
                         >
                           {daySchedules.length === 0 ? (
-                            <span className="text-gray-300">—</span>
+                            <span className="text-muted-foreground/40">—</span>
                           ) : (
                             <div className="space-y-1">
                               {daySchedules.map((s) => (
@@ -1004,10 +965,10 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
                                   disabled={s.status !== "scheduled" || !canManage}
                                   className={`block w-full text-left px-2 py-1 rounded text-xs transition-colors ${
                                     s.status === "cancelled"
-                                      ? "text-gray-400 line-through"
+                                      ? "text-muted-foreground line-through"
                                       : canManage
-                                        ? "text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
-                                        : "text-gray-700"
+                                        ? "text-foreground hover:bg-primary/5 hover:text-apple-primary cursor-pointer"
+                                        : "text-foreground"
                                   }`}
                                   title={
                                     s.status === "scheduled" && canManage
@@ -1016,7 +977,7 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
                                   }
                                 >
                                   <span className="font-medium">{s.staff?.name || s.staffId}</span>
-                                  <span className="text-gray-400 ml-1">
+                                  <span className="text-muted-foreground ml-1">
                                     {s.startTime}-{s.endTime}
                                   </span>
                                 </button>
@@ -1034,28 +995,24 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
         )}
       </div>
 
-      {/* Generate schedule modal */}
+      {/* Generate schedule modal — stays custom with Apple tokens */}
       {showGenerateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowGenerateModal(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">生成排班</h3>
+          <div className="relative z-10 w-full max-w-md rounded-xl bg-card shadow-2xl ring-1 ring-foreground/5">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">生成排班</h3>
             </div>
             <div className="p-6 space-y-4">
-              {genError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                  {genError}
-                </div>
-              )}
+              {genError && <ErrorBanner message={genError} />}
 
               {genResult ? (
                 <div className="space-y-3">
-                  <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+                  <div className="rounded-lg bg-apple-success/10 border border-apple-success/20 px-4 py-3 text-sm text-apple-success">
                     成功创建 {genResult.created} 条排班记录
                   </div>
                   {genResult.conflicts.length > 0 && (
-                    <div className="rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-700">
+                    <div className="rounded-lg bg-apple-warning/10 border border-apple-warning/20 px-4 py-3 text-sm text-apple-warning">
                       <p className="font-medium mb-1">存在 {genResult.conflicts.length} 个冲突：</p>
                       <ul className="list-disc list-inside space-y-0.5 text-xs">
                         {genResult.conflicts.map((c, i) => (
@@ -1066,28 +1023,28 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
                       </ul>
                     </div>
                   )}
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setShowGenerateModal(false)}
-                    className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+                    className="w-full"
                   >
                     完成
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <>
                   <div>
-                    <label htmlFor="gen-template" className="block text-sm font-medium text-gray-700 mb-1">
-                      选择模板 <span className="text-red-500">*</span>
+                    <label htmlFor="gen-template" className="block text-sm font-medium text-foreground mb-1">
+                      选择模板 <span className="text-apple-error">*</span>
                     </label>
                     {templates.length === 0 ? (
-                      <p className="text-sm text-gray-400">暂无可用模板，请先创建排班模板</p>
+                      <p className="text-sm text-muted-foreground">暂无可用模板，请先创建排班模板</p>
                     ) : (
                       <select
                         id="gen-template"
                         value={genTemplateId}
                         onChange={(e) => setGenTemplateId(e.target.value)}
-                        className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        className={SELECT_FULL_CLASSES}
                       >
                         <option value="">请选择模板</option>
                         {templates.map((t) => (
@@ -1097,39 +1054,32 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
                     )}
                   </div>
                   <div>
-                    <label htmlFor="gen-week-start" className="block text-sm font-medium text-gray-700 mb-1">
-                      周开始日期（周一） <span className="text-red-500">*</span>
+                    <label htmlFor="gen-week-start" className="block text-sm font-medium text-foreground mb-1">
+                      周开始日期（周一） <span className="text-apple-error">*</span>
                     </label>
                     <input
                       id="gen-week-start"
                       type="date"
                       value={genWeekStart}
                       onChange={(e) => setGenWeekStart(e.target.value)}
-                      className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className={INPUT_CLASSES}
                     />
                   </div>
                   <div className="flex justify-end gap-3 pt-2">
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
                       onClick={() => setShowGenerateModal(false)}
-                      className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       取消
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       disabled={genSubmitting || !genTemplateId || !genWeekStart}
                       onClick={handleGenerate}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
                     >
-                      {genSubmitting && (
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      )}
                       生成
-                    </button>
+                    </Button>
                   </div>
                 </>
               )}
@@ -1138,24 +1088,22 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
         </div>
       )}
 
-      {/* Adjust schedule modal */}
+      {/* Adjust schedule modal — stays custom with Apple tokens */}
       {adjustTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAdjustTarget(null)} />
-          <div className="relative z-10 w-full max-w-sm rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">调整排班</h3>
-            <p className="text-sm text-gray-500 mb-4">
+          <div className="relative z-10 w-full max-w-sm rounded-xl bg-card shadow-2xl ring-1 ring-foreground/5 p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-2">调整排班</h3>
+            <p className="text-sm text-muted-foreground mb-4">
               {adjustTarget.date.split("T")[0]}{" "}
               {SHIFT_TYPE_LABELS[adjustTarget.shiftType] || adjustTarget.shiftType}{" "}
               ({adjustTarget.startTime}-{adjustTarget.endTime})
             </p>
             {adjustError && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 mb-4">
-                {adjustError}
-              </div>
+              <ErrorBanner message={adjustError} />
             )}
             <div className="mb-4">
-              <label htmlFor="adjust-staff-id" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="adjust-staff-id" className="block text-sm font-medium text-foreground mb-1">
                 员工 ID
               </label>
               <input
@@ -1163,73 +1111,58 @@ function ScheduleCalendar({ canManage }: { canManage: boolean }) {
                 type="text"
                 value={adjustStaffId}
                 onChange={(e) => setAdjustStaffId(e.target.value)}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className={INPUT_CLASSES}
               />
             </div>
             <div className="flex justify-between">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => {
                   setAdjustTarget(null);
                   setCancelTarget(adjustTarget);
                 }}
-                className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors"
+                className="border-apple-error/20 bg-apple-error/5 text-apple-error hover:bg-apple-error/10"
               >
                 取消排班
-              </button>
+              </Button>
               <div className="flex gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setAdjustTarget(null)}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   关闭
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   disabled={adjustSubmitting}
                   onClick={handleAdjust}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
                   {adjustSubmitting ? "保存中..." : "保存"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Cancel confirmation dialog */}
-      {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCancelTarget(null)} />
-          <div className="relative z-10 w-full max-w-sm rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">确认取消排班</h3>
-            <p className="text-sm text-gray-600 mb-6">
-              确定要取消 {cancelTarget.date.split("T")[0]}{" "}
-              {SHIFT_TYPE_LABELS[cancelTarget.shiftType] || cancelTarget.shiftType}
-              的排班吗？
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setCancelTarget(null)}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                返回
-              </button>
-              <button
-                type="button"
-                disabled={cancelSubmitting}
-                onClick={handleCancel}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
-                {cancelSubmitting ? "取消中..." : "确认取消"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Cancel confirmation dialog — FormModal with error/red styling */}
+      <FormModal
+        open={!!cancelTarget}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        title="确认取消排班"
+        description={cancelTarget
+          ? `确定要取消 ${cancelTarget.date.split("T")[0]} ${SHIFT_TYPE_LABELS[cancelTarget.shiftType] || cancelTarget.shiftType} 的排班吗？`
+          : ""}
+        onSubmit={handleCancel}
+        submitting={cancelSubmitting}
+        submitLabel="确认取消"
+        cancelLabel="返回"
+        submitButtonClassName="bg-apple-error hover:bg-apple-error/90 text-white"
+      >
+        <></>
+      </FormModal>
     </div>
   );
 }
@@ -1246,9 +1179,9 @@ export default function SchedulesPage() {
   if (authLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-gray-200 rounded" />
-        <div className="h-10 w-full bg-gray-200 rounded" />
-        <div className="h-64 w-full bg-gray-200 rounded" />
+        <div className="h-8 w-48 bg-muted rounded" />
+        <div className="h-10 w-full bg-muted rounded" />
+        <div className="h-64 w-full bg-muted rounded" />
       </div>
     );
   }
@@ -1260,19 +1193,20 @@ export default function SchedulesPage() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900 tracking-tight">排班管理</h2>
-      </div>
+      <PageHeader
+        title="排班管理"
+        description="管理排班模板和排班日历"
+      />
 
-      {/* Tab navigation */}
-      <div className="flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+      {/* Tab navigation — Apple tokens */}
+      <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
         <button
           type="button"
           onClick={() => setActiveTab("templates")}
           className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "templates"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           排班模板
@@ -1282,8 +1216,8 @@ export default function SchedulesPage() {
           onClick={() => setActiveTab("calendar")}
           className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "calendar"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           排班日历
