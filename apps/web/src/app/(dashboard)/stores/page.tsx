@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { FormEvent } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { DataTable, type Column } from "@/components/data-table";
+import { FormModal } from "@/components/form-modal";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 /* ─── Types ─── */
 
@@ -34,11 +40,23 @@ interface ModalForm {
   businessHours: string;
 }
 
+/* ─── Constants ─── */
+
 const EMPTY_FORM: ModalForm = {
   name: "",
   address: "",
   phone: "",
   businessHours: "",
+};
+
+const STORE_STATUS_COLORS: Record<string, string> = {
+  active: "bg-apple-success/10 text-apple-success ring-apple-success/20",
+  disabled: "bg-muted text-muted-foreground ring-muted-foreground/20",
+};
+
+const STORE_STATUS_LABELS: Record<string, string> = {
+  active: "正常",
+  disabled: "已禁用",
 };
 
 const PAGE_SIZE = 20;
@@ -47,13 +65,12 @@ const PAGE_SIZE = 20;
 
 export default function StoresPage() {
   const { user, loading: authLoading } = useAuth();
-  const role = user?.role;
-  const canManage = role === "admin";
+  const canManage = user?.role === "admin";
 
   // ── List state ──
   const [storeList, setStoreList] = useState<StoreRecord[]>([]);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState("");
@@ -74,13 +91,12 @@ export default function StoresPage() {
   } | null>(null);
   const [disableSubmitting, setDisableSubmitting] = useState(false);
 
-  // ── Debounced search ──
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
+  // ── Fetch stores ──
   const fetchStores = useCallback(async () => {
     setListLoading(true);
     setListError("");
     try {
+      const offset = (page - 1) * PAGE_SIZE;
       const params = new URLSearchParams({
         limit: String(PAGE_SIZE),
         offset: String(offset),
@@ -103,20 +119,16 @@ export default function StoresPage() {
     } finally {
       setListLoading(false);
     }
-  }, [offset, search]);
+  }, [page, search]);
 
   useEffect(() => {
     if (!authLoading) fetchStores();
   }, [fetchStores, authLoading]);
 
-  // Debounce search input
+  // ── Search handler (DataTable handles debounce) ──
   function handleSearchChange(value: string) {
     setSearch(value);
-    setOffset(0);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      // fetchStores will fire via the useEffect deps (search changed)
-    }, 300);
+    setPage(1);
   }
 
   // ── Modal handlers ──
@@ -153,8 +165,7 @@ export default function StoresPage() {
     setFormError("");
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleSubmit() {
     setFormError("");
     setFormSubmitting(true);
 
@@ -246,17 +257,103 @@ export default function StoresPage() {
     }
   }
 
-  // ── Derived ──
-  const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // ── Column definitions (MEM074: inside component body) ──
+  const columns: Column<StoreRecord>[] = [
+    {
+      key: "name",
+      header: "店铺名称",
+      render: (store) => (
+        <span className="font-medium text-foreground">{store.name}</span>
+      ),
+    },
+    {
+      key: "address",
+      header: "地址",
+      render: (store) => (
+        <span className="text-muted-foreground max-w-[200px] truncate block">
+          {store.address || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "phone",
+      header: "电话",
+      render: (store) => (
+        <span className="text-muted-foreground">{store.phone || "—"}</span>
+      ),
+    },
+    {
+      key: "businessHours",
+      header: "营业时间",
+      render: (store) => (
+        <span className="text-muted-foreground">{store.businessHours || "—"}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "状态",
+      render: (store) => (
+        <StatusBadge
+          status={store.deletedAt ? "disabled" : "active"}
+          colorMap={STORE_STATUS_COLORS}
+          labelMap={STORE_STATUS_LABELS}
+          variant="ring"
+        />
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "创建时间",
+      render: (store) => (
+        <span className="text-muted-foreground">
+          {new Date(store.createdAt).toLocaleDateString("zh-CN")}
+        </span>
+      ),
+    },
+    ...(canManage
+      ? [
+          {
+              key: "actions",
+              header: "操作",
+              className: "text-right" as const,
+              render: (store: StoreRecord) => (
+                <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-primary hover:text-primary/80"
+                    onClick={() => openEditModal(store)}
+                  >
+                    编辑
+                  </Button>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className={`h-auto p-0 ${
+                      store.deletedAt
+                        ? "text-apple-success hover:text-apple-success/80"
+                        : "text-apple-error hover:text-apple-error/80"
+                    }`}
+                    onClick={() => confirmDisable(store)}
+                  >
+                    {store.deletedAt ? "启用" : "禁用"}
+                  </Button>
+                </div>
+              ),
+            },
+        ]
+      : []),
+  ];
 
-  // ── Loading / auth guard ──
+  // ── Loading skeleton ──
   if (authLoading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-gray-200 rounded" />
-        <div className="h-10 w-full bg-gray-200 rounded" />
-        <div className="h-64 w-full bg-gray-200 rounded" />
+      <div className="space-y-6">
+        <div className="space-y-2 animate-pulse">
+          <div className="h-7 w-48 bg-muted rounded" />
+        </div>
+        <div className="h-10 w-full bg-muted rounded-lg" />
+        <div className="h-64 w-full bg-muted rounded-xl" />
       </div>
     );
   }
@@ -264,309 +361,114 @@ export default function StoresPage() {
   return (
     <div className="space-y-6">
       {/* ── Page header ── */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900 tracking-tight">店铺管理</h2>
-        {canManage && (
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            添加店铺
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="店铺管理"
+        actions={
+          canManage ? (
+            <Button onClick={openCreateModal} size="sm">
+              <Plus className="h-4 w-4" />
+              添加店铺
+            </Button>
+          ) : undefined
+        }
+      />
 
-      {/* ── Search bar ── */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <svg
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="搜索店铺名称"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-          />
-        </div>
-      </div>
+      {/* ── Data table ── */}
+      <DataTable
+        columns={columns}
+        data={storeList}
+        loading={listLoading}
+        error={listError}
+        total={total}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        onSearch={handleSearchChange}
+        searchPlaceholder="搜索店铺名称"
+        onRetry={fetchStores}
+        emptyMessage="暂无店铺数据"
+      />
 
-      {/* ── Error banner ── */}
-      {listError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {listError}
-          <button type="button" onClick={fetchStores} className="ml-2 underline hover:no-underline">
-            重试
-          </button>
-        </div>
-      )}
-
-      {/* ── Stores table ── */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">店铺名称</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">地址</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">电话</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">营业时间</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">状态</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">创建时间</th>
-              {canManage && (
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">操作</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {listLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={`skel-${i}`}>
-                  {Array.from({ length: canManage ? 7 : 6 }).map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-gray-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : storeList.length === 0 ? (
-              <tr>
-                <td colSpan={canManage ? 7 : 6} className="px-4 py-12 text-center text-sm text-gray-400">
-                  暂无店铺数据
-                </td>
-              </tr>
-            ) : (
-              storeList.map((store) => (
-                <tr key={store.id} className={`hover:bg-gray-50 transition-colors ${store.deletedAt ? "opacity-50" : ""}`}>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{store.name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate">{store.address || "—"}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{store.phone || "—"}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{store.businessHours || "—"}</td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    {store.deletedAt ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-                        <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
-                        已禁用
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                        <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                        正常
-                      </span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                    {new Date(store.createdAt).toLocaleDateString("zh-CN")}
-                  </td>
-                  {canManage && (
-                    <td className="whitespace-nowrap px-4 py-3 text-right space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(store)}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => confirmDisable(store)}
-                        className={`text-sm font-medium transition-colors ${
-                          store.deletedAt
-                            ? "text-green-600 hover:text-green-800"
-                            : "text-red-500 hover:text-red-700"
-                        }`}
-                      >
-                        {store.deletedAt ? "启用" : "禁用"}
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* ── Pagination ── */}
-        {!listLoading && total > 0 && (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-sm text-gray-500">
-              共 {total} 条，第 {currentPage} / {totalPages} 页
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={currentPage <= 1}
-                onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                disabled={currentPage >= totalPages}
-                onClick={() => setOffset((o) => o + PAGE_SIZE)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                下一页
-              </button>
-            </div>
+      {/* ── Create / Edit Modal ── */}
+      <FormModal
+        open={showModal}
+        onOpenChange={(open) => {
+          if (!open) closeModal();
+        }}
+        title={modalMode === "create" ? "添加店铺" : "编辑店铺"}
+        onSubmit={handleSubmit}
+        submitting={formSubmitting}
+        error={formError}
+        submitLabel={modalMode === "create" ? "创建" : "保存"}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          className="space-y-4"
+        >
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              店铺名称 <span className="text-apple-error">*</span>
+            </label>
+            <Input
+              value={form.name}
+              onChange={(e) => updateForm("name", e.target.value)}
+              placeholder="请输入店铺名称"
+            />
           </div>
-        )}
-      </div>
 
-      {/* ── Create / Edit Modal (admin only) ── */}
-      {showModal && canManage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal} />
-          {/* Dialog */}
-          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {modalMode === "create" ? "添加店铺" : "编辑店铺"}
-              </h3>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {formError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                  {formError}
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="store-name" className="block text-sm font-medium text-gray-700 mb-1">
-                  店铺名称 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="store-name"
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => updateForm("name", e.target.value)}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  placeholder="请输入店铺名称"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="store-address" className="block text-sm font-medium text-gray-700 mb-1">
-                  地址
-                </label>
-                <input
-                  id="store-address"
-                  type="text"
-                  value={form.address}
-                  onChange={(e) => updateForm("address", e.target.value)}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  placeholder="请输入地址"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="store-phone" className="block text-sm font-medium text-gray-700 mb-1">
-                  电话
-                </label>
-                <input
-                  id="store-phone"
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => updateForm("phone", e.target.value)}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  placeholder="请输入电话号码"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="store-hours" className="block text-sm font-medium text-gray-700 mb-1">
-                  营业时间
-                </label>
-                <input
-                  id="store-hours"
-                  type="text"
-                  value={form.businessHours}
-                  onChange={(e) => updateForm("businessHours", e.target.value)}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  placeholder="例如: 09:00-18:00"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  disabled={formSubmitting}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {formSubmitting && (
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  )}
-                  {modalMode === "create" ? "创建" : "保存"}
-                </button>
-              </div>
-            </form>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">地址</label>
+            <Input
+              value={form.address}
+              onChange={(e) => updateForm("address", e.target.value)}
+              placeholder="请输入地址"
+            />
           </div>
-        </div>
-      )}
 
-      {/* ── Disable / Enable confirmation dialog (admin only) ── */}
-      {disableTarget && canManage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDisableTarget(null)} />
-          <div className="relative z-10 w-full max-w-sm rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              确认{disableTarget.disabled ? "禁用" : "启用"}
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              确定要{disableTarget.disabled ? "禁用" : "启用"}店铺「{disableTarget.name}」吗？
-              {disableTarget.disabled && " 禁用后该店铺将不可用。"}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDisableTarget(null)}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                disabled={disableSubmitting}
-                onClick={handleDisableConfirm}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm disabled:opacity-50 transition-colors ${
-                  disableTarget.disabled ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"
-                }`}
-              >
-                {disableSubmitting && (
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                )}
-                {disableTarget.disabled ? "禁用" : "启用"}
-              </button>
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">电话</label>
+            <Input
+              type="tel"
+              value={form.phone}
+              onChange={(e) => updateForm("phone", e.target.value)}
+              placeholder="请输入电话号码"
+            />
           </div>
-        </div>
-      )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">营业时间</label>
+            <Input
+              value={form.businessHours}
+              onChange={(e) => updateForm("businessHours", e.target.value)}
+              placeholder="例如: 09:00-18:00"
+            />
+          </div>
+        </form>
+      </FormModal>
+
+      {/* ── Disable / Enable confirmation ── */}
+      <FormModal
+        open={!!disableTarget}
+        onOpenChange={(open) => {
+          if (!open) setDisableTarget(null);
+        }}
+        title={`确认${disableTarget?.disabled ? "禁用" : "启用"}`}
+        description={
+          disableTarget
+            ? `确定要${disableTarget.disabled ? "禁用" : "启用"}店铺「${disableTarget.name}」吗？${
+                disableTarget.disabled ? " 禁用后该店铺将不可用。" : ""
+              }`
+            : undefined
+        }
+        onSubmit={handleDisableConfirm}
+        submitting={disableSubmitting}
+        submitLabel={disableTarget?.disabled ? "禁用" : "启用"}
+      >
+        <></>
+      </FormModal>
     </div>
   );
 }
