@@ -283,7 +283,7 @@ export default function Sidebar() {
 
         {/* Bottom: store switcher + user info + logout */}
         <div className="border-t border-white/[0.06] px-4 py-3 space-y-2">
-          <StoreSwitcher />
+          <StoreSwitcher dark />
           {user && (
             <div className="flex items-center gap-2 px-1">
               <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/70 text-xs font-medium shrink-0">
