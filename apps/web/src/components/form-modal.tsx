@@ -26,6 +26,7 @@ interface FormModalProps {
   error?: string;
   submitLabel?: string;
   cancelLabel?: string;
+  submitButtonClassName?: string;
 }
 
 /* ─── Component ─── */
@@ -41,6 +42,7 @@ function FormModal({
   error,
   submitLabel = "提交",
   cancelLabel = "取消",
+  submitButtonClassName,
 }: FormModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -78,7 +80,7 @@ function FormModal({
             >
               {cancelLabel}
             </Button>
-            <Button type="submit" disabled={submitting} onClick={onSubmit}>
+            <Button type="submit" disabled={submitting} onClick={onSubmit} className={submitButtonClassName}>
               {submitting && <Loader2 className="animate-spin" />}
               {submitLabel}
             </Button>
