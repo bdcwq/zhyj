@@ -3,6 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { STAFF_ROLES } from "@zhyj/shared";
+import { PageHeader } from "@/components/page-header";
+import { DataTable, type Column } from "@/components/data-table";
+import { StatusBadge } from "@/components/status-badge";
+import { ErrorBanner } from "@/components/error-banner";
+import { CheckCircle2 } from "lucide-react";
 
 /* ─── Types ─── */
 
@@ -45,12 +50,30 @@ interface AttendanceListResponse {
 /* ─── Constants ─── */
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  normal: { label: "正常", color: "text-green-700", bg: "bg-green-50 border-green-200" },
-  late: { label: "迟到", color: "text-yellow-700", bg: "bg-yellow-50 border-yellow-200" },
-  early_leave: { label: "早退", color: "text-orange-700", bg: "bg-orange-50 border-orange-200" },
-  late_and_early: { label: "迟到+早退", color: "text-red-700", bg: "bg-red-50 border-red-200" },
-  pending: { label: "未签退", color: "text-gray-600", bg: "bg-gray-50 border-gray-200" },
-  absent: { label: "缺勤", color: "text-red-700", bg: "bg-red-50 border-red-200" },
+  normal: { label: "正常", color: "text-apple-success", bg: "bg-apple-success/10 border-apple-success/20" },
+  late: { label: "迟到", color: "text-apple-warning", bg: "bg-apple-warning/10 border-apple-warning/20" },
+  early_leave: { label: "早退", color: "text-apple-warning", bg: "bg-apple-warning/10 border-apple-warning/20" },
+  late_and_early: { label: "迟到+早退", color: "text-apple-error", bg: "bg-apple-error/10 border-apple-error/20" },
+  pending: { label: "未签退", color: "text-muted-foreground", bg: "bg-muted border-border" },
+  absent: { label: "缺勤", color: "text-apple-error", bg: "bg-apple-error/10 border-apple-error/20" },
+};
+
+const STATUS_COLOR_MAP: Record<string, string> = {
+  normal: "bg-apple-success/10 text-apple-success",
+  late: "bg-apple-warning/10 text-apple-warning",
+  early_leave: "bg-apple-warning/10 text-apple-warning",
+  late_and_early: "bg-apple-error/10 text-apple-error",
+  pending: "bg-muted text-muted-foreground",
+  absent: "bg-apple-error/10 text-apple-error",
+};
+
+const STATUS_LABEL_MAP: Record<string, string> = {
+  normal: "正常",
+  late: "迟到",
+  early_leave: "早退",
+  late_and_early: "迟到+早退",
+  pending: "未签退",
+  absent: "缺勤",
 };
 
 function formatTime(dateStr: string | null): string {
@@ -203,7 +226,7 @@ function StaffClockView() {
     <div className="max-w-md mx-auto space-y-6">
       {/* Today's date */}
       <div className="text-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {new Date().toLocaleDateString("zh-CN", {
             year: "numeric",
             month: "long",
@@ -215,38 +238,38 @@ function StaffClockView() {
 
       {/* Status card */}
       {loading ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-8 animate-pulse">
-          <div className="h-6 bg-gray-100 rounded w-1/2 mx-auto mb-4" />
-          <div className="h-10 bg-gray-100 rounded w-3/4 mx-auto" />
+        <div className="rounded-xl border border-border bg-card shadow-sm p-8 animate-pulse">
+          <div className="h-6 bg-muted rounded w-1/2 mx-auto mb-4" />
+          <div className="h-10 bg-muted rounded w-3/4 mx-auto" />
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-8 text-center">
+        <div className="rounded-xl border border-border bg-card shadow-sm p-8 text-center">
           {/* Status */}
           {!todayRecord ? (
             <>
               <p className="text-4xl mb-2">📋</p>
-              <p className="text-lg font-semibold text-gray-900">今日未签到</p>
-              <p className="text-sm text-gray-500 mt-1">请点击下方按钮签到打卡</p>
+              <p className="text-lg font-semibold text-foreground">今日未签到</p>
+              <p className="text-sm text-muted-foreground mt-1">请点击下方按钮签到打卡</p>
             </>
           ) : !isClockedIn ? (
             <>
               <p className="text-4xl mb-2">⏳</p>
-              <p className="text-lg font-semibold text-gray-900">等待签到</p>
-              <p className="text-sm text-gray-500 mt-1">考勤记录已创建，请签到</p>
+              <p className="text-lg font-semibold text-foreground">等待签到</p>
+              <p className="text-sm text-muted-foreground mt-1">考勤记录已创建，请签到</p>
             </>
           ) : isClockedOut ? (
             <>
               <p className="text-4xl mb-2">✅</p>
-              <p className="text-lg font-semibold text-gray-900">今日已完成</p>
-              <div className="mt-3 space-y-1 text-sm text-gray-600">
+              <p className="text-lg font-semibold text-foreground">今日已完成</p>
+              <div className="mt-3 space-y-1 text-sm text-muted-foreground">
                 <p>
-                  签到时间：<span className="font-medium">{formatTime(todayRecord.clockIn)}</span>
+                  签到时间：<span className="font-medium text-foreground">{formatTime(todayRecord.clockIn)}</span>
                 </p>
                 <p>
-                  签退时间：<span className="font-medium">{formatTime(todayRecord.clockOut)}</span>
+                  签退时间：<span className="font-medium text-foreground">{formatTime(todayRecord.clockOut)}</span>
                 </p>
                 <p>
-                  工作时长：<span className="font-medium">{formatHours(todayRecord.workedMinutes)}</span>
+                  工作时长：<span className="font-medium text-foreground">{formatHours(todayRecord.workedMinutes)}</span>
                 </p>
                 <div className="pt-2">
                   <span
@@ -260,10 +283,10 @@ function StaffClockView() {
           ) : (
             <>
               <p className="text-4xl mb-2">🟢</p>
-              <p className="text-lg font-semibold text-gray-900">工作中</p>
-              <div className="mt-3 space-y-1 text-sm text-gray-600">
+              <p className="text-lg font-semibold text-foreground">工作中</p>
+              <div className="mt-3 space-y-1 text-sm text-muted-foreground">
                 <p>
-                  签到时间：<span className="font-medium">{formatTime(todayRecord.clockIn)}</span>
+                  签到时间：<span className="font-medium text-foreground">{formatTime(todayRecord.clockIn)}</span>
                 </p>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig.bg} ${statusConfig.color}`}
@@ -278,14 +301,13 @@ function StaffClockView() {
 
       {/* Messages */}
       {successMsg && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 text-center">
+        <div className="flex items-center gap-2 justify-center rounded-lg bg-apple-success/10 border border-apple-success/20 px-4 py-3 text-sm text-apple-success">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
           {successMsg}
         </div>
       )}
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 text-center">
-          {error}
-        </div>
+        <ErrorBanner message={error} />
       )}
 
       {/* Clock-in / Clock-out button */}
@@ -296,7 +318,7 @@ function StaffClockView() {
               type="button"
               disabled={actionLoading || isClockedOut}
               onClick={handleClockIn}
-              className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-8 py-4 text-lg font-semibold text-white shadow-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-xl bg-apple-success px-8 py-4 text-lg font-semibold text-white shadow-lg hover:bg-apple-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
             >
               {actionLoading ? (
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
@@ -315,7 +337,7 @@ function StaffClockView() {
               type="button"
               disabled={actionLoading}
               onClick={handleClockOut}
-              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-8 py-4 text-lg font-semibold text-white shadow-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
+              className="inline-flex items-center gap-2 rounded-xl bg-apple-error px-8 py-4 text-lg font-semibold text-white shadow-lg hover:bg-apple-error/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
             >
               {actionLoading ? (
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
@@ -337,6 +359,50 @@ function StaffClockView() {
 }
 
 /* ─── ManagerDashboard ─── */
+
+const managerColumns: Column<StaffAttendanceRecord>[] = [
+  {
+    key: "staff.name",
+    header: "员工姓名",
+    render: (row) => (
+      <span className="font-medium text-foreground">{row.staff?.name || "—"}</span>
+    ),
+  },
+  {
+    key: "schedule",
+    header: "班次",
+    render: (row) =>
+      row.schedule
+        ? `${row.schedule.startTime} - ${row.schedule.endTime}`
+        : "—",
+  },
+  {
+    key: "clockIn",
+    header: "签到时间",
+    render: (row) => formatTime(row.clockIn),
+  },
+  {
+    key: "clockOut",
+    header: "签退时间",
+    render: (row) => formatTime(row.clockOut),
+  },
+  {
+    key: "workedMinutes",
+    header: "工时",
+    render: (row) => formatHours(row.workedMinutes),
+  },
+  {
+    key: "status",
+    header: "状态",
+    render: (row) => (
+      <StatusBadge
+        status={row.status}
+        colorMap={STATUS_COLOR_MAP}
+        labelMap={STATUS_LABEL_MAP}
+      />
+    ),
+  },
+];
 
 function ManagerDashboard() {
   const [records, setRecords] = useState<StaffAttendanceRecord[]>([]);
@@ -381,11 +447,11 @@ function ManagerDashboard() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Summary + date picker */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
           <div>
-            <label htmlFor="attendance-date" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="attendance-date" className="block text-sm font-medium text-foreground mb-1">
               选择日期
             </label>
             <input
@@ -393,117 +459,36 @@ function ManagerDashboard() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="rounded-lg border border-border px-3 py-2 text-sm text-foreground bg-card focus:border-primary focus:ring-1 focus:ring-primary"
             />
           </div>
         </div>
         <div className="flex items-center gap-4 text-sm">
           <div className="text-center">
-            <p className="font-semibold text-gray-900 text-lg">{presentCount}</p>
-            <p className="text-gray-500">已签到</p>
+            <p className="font-semibold text-foreground text-lg">{presentCount}</p>
+            <p className="text-muted-foreground">已签到</p>
           </div>
           <div className="text-center">
-            <p className="font-semibold text-gray-900 text-lg">{completedCount}</p>
-            <p className="text-gray-500">已签退</p>
+            <p className="font-semibold text-foreground text-lg">{completedCount}</p>
+            <p className="text-muted-foreground">已签退</p>
           </div>
           <div className="text-center">
-            <p className="font-semibold text-gray-900 text-lg">{total}</p>
-            <p className="text-gray-500">总记录</p>
+            <p className="font-semibold text-foreground text-lg">{total}</p>
+            <p className="text-muted-foreground">总记录</p>
           </div>
         </div>
       </div>
-
-      {/* Error banner */}
-      {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
-          <button type="button" onClick={fetchAttendance} className="ml-2 underline hover:no-underline">
-            重试
-          </button>
-        </div>
-      )}
 
       {/* Attendance table */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                员工姓名
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                班次
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                签到时间
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                签退时间
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                工时
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                状态
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <tr key={`skel-${i}`}>
-                  {Array.from({ length: 6 }).map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div
-                        className="h-4 bg-gray-100 rounded animate-pulse"
-                        style={{ width: `${50 + Math.random() * 50}%` }}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : records.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400">
-                  暂无考勤记录
-                </td>
-              </tr>
-            ) : (
-              records.map((record) => {
-                const statusConfig = STATUS_CONFIG[record.status] || STATUS_CONFIG.pending;
-                return (
-                  <tr key={record.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                      {record.staff?.name || "—"}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                      {record.schedule
-                        ? `${record.schedule.startTime} - ${record.schedule.endTime}`
-                        : "—"}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                      {formatTime(record.clockIn)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                      {formatTime(record.clockOut)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                      {formatHours(record.workedMinutes)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig.bg} ${statusConfig.color}`}
-                      >
-                        {statusConfig.label}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={managerColumns}
+        data={records}
+        loading={loading}
+        error={error}
+        total={total}
+        onRetry={fetchAttendance}
+        emptyMessage="暂无考勤记录"
+      />
     </div>
   );
 }
@@ -530,6 +515,74 @@ interface ReportResponse {
     offset: number;
   };
 }
+
+const reportColumns: Column<ReportRecord>[] = [
+  {
+    key: "staffName",
+    header: "姓名",
+    render: (row) => (
+      <span className="font-medium text-foreground">{row.staffName}</span>
+    ),
+    className: "whitespace-nowrap",
+  },
+  {
+    key: "presentDays",
+    header: "出勤天数",
+    render: (row) => (
+      <span className="text-foreground">{row.presentDays}</span>
+    ),
+    className: "text-center",
+  },
+  {
+    key: "lateDays",
+    header: "迟到天数",
+    render: (row) =>
+      row.lateDays > 0 ? (
+        <span className="text-apple-warning font-medium">{row.lateDays}</span>
+      ) : (
+        <span className="text-muted-foreground">0</span>
+      ),
+    className: "text-center",
+  },
+  {
+    key: "earlyLeaveDays",
+    header: "早退天数",
+    render: (row) =>
+      row.earlyLeaveDays > 0 ? (
+        <span className="text-apple-warning font-medium">{row.earlyLeaveDays}</span>
+      ) : (
+        <span className="text-muted-foreground">0</span>
+      ),
+    className: "text-center",
+  },
+  {
+    key: "leaveDays",
+    header: "请假天数",
+    render: (row) => (
+      <span className="text-primary font-medium">{row.leaveDays}</span>
+    ),
+    className: "text-center",
+  },
+  {
+    key: "absentDays",
+    header: "缺勤天数",
+    render: (row) =>
+      row.absentDays > 0 ? (
+        <span className="text-apple-error font-medium">{row.absentDays}</span>
+      ) : (
+        <span className="text-muted-foreground">0</span>
+      ),
+    className: "text-center",
+  },
+  {
+    key: "totalHours",
+    header: "总工时(h)",
+    render: (row) => (
+      <span className="text-foreground">{row.totalHours}</span>
+    ),
+    className: "text-center",
+  },
+];
 
 function AttendanceReportView() {
   const [reports, setReports] = useState<ReportRecord[]>([]);
@@ -575,56 +628,41 @@ function AttendanceReportView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-center gap-4">
-        <button type="button" onClick={goToPrevMonth} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">←</button>
-        <span className="text-sm font-medium text-gray-900 min-w-[140px] text-center">{viewYear}年{String(viewMonth).padStart(2, "0")}月</span>
-        <button type="button" onClick={goToNextMonth} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">→</button>
-        <button type="button" onClick={goToCurrentMonth} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">本月</button>
+      <div className="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={goToPrevMonth}
+          className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          ←
+        </button>
+        <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
+          {viewYear}年{String(viewMonth).padStart(2, "0")}月
+        </span>
+        <button
+          type="button"
+          onClick={goToNextMonth}
+          className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          →
+        </button>
+        <button
+          type="button"
+          onClick={goToCurrentMonth}
+          className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          本月
+        </button>
       </div>
-      {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
-          <button type="button" onClick={fetchReport} className="ml-2 underline hover:no-underline">重试</button>
-        </div>
-      )}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">姓名</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">出勤天数</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">迟到天数</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">早退天数</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">请假天数</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">缺勤天数</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">总工时(h)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <tr key={`skel-${i}`}>{Array.from({ length: 7 }).map((_, j) => (
-                  <td key={j} className="px-4 py-3"><div className="h-4 bg-gray-100 rounded animate-pulse mx-auto" style={{ width: `${40 + Math.random() * 40}%` }} /></td>
-                ))}</tr>
-              ))
-            ) : reports.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">暂无考勤数据</td></tr>
-            ) : (
-              reports.map((r) => (
-                <tr key={r.staffId} className="hover:bg-gray-50 transition-colors">
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{r.staffName}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 text-center">{r.presentDays}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-center">{r.lateDays > 0 ? <span className="text-yellow-700 font-medium">{r.lateDays}</span> : <span className="text-gray-400">0</span>}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-center">{r.earlyLeaveDays > 0 ? <span className="text-orange-700 font-medium">{r.earlyLeaveDays}</span> : <span className="text-gray-400">0</span>}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-blue-600 text-center">{r.leaveDays}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-center">{r.absentDays > 0 ? <span className="text-red-700 font-medium">{r.absentDays}</span> : <span className="text-gray-400">0</span>}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 text-center">{r.totalHours}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+
+      <DataTable
+        columns={reportColumns}
+        data={reports}
+        loading={loading}
+        error={error}
+        onRetry={fetchReport}
+        emptyMessage="暂无考勤数据"
+      />
     </div>
   );
 }
@@ -641,9 +679,9 @@ export default function AttendancePage() {
   if (authLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-gray-200 rounded" />
-        <div className="h-10 w-full bg-gray-200 rounded" />
-        <div className="h-64 w-full bg-gray-200 rounded" />
+        <div className="h-8 w-48 bg-muted rounded" />
+        <div className="h-10 w-full bg-muted rounded" />
+        <div className="h-64 w-full bg-muted rounded" />
       </div>
     );
   }
@@ -652,15 +690,37 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 tracking-tight">考勤管理</h2>
-        <p className="text-sm text-gray-500 mt-1">{isStaff ? "查看您的考勤状态并进行签到/签退" : "查看员工到岗情况"}</p>
+      <PageHeader
+        title="考勤管理"
+        description={isStaff ? "查看您的考勤状态并进行签到/签退" : "查看员工到岗情况"}
+      />
+      <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveTab("clock-in")}
+          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "clock-in"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          考勤打卡
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("report")}
+          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "report"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          月度报表
+        </button>
       </div>
-      <div className="flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
-        <button type="button" onClick={() => setActiveTab("clock-in")} className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${activeTab === "clock-in" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>考勤打卡</button>
-        <button type="button" onClick={() => setActiveTab("report")} className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${activeTab === "report" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>月度报表</button>
-      </div>
-      {activeTab === "clock-in" ? (isStaff ? <StaffClockView /> : isManager ? <ManagerDashboard /> : null) : <AttendanceReportView />}
+      {activeTab === "clock-in"
+        ? (isStaff ? <StaffClockView /> : isManager ? <ManagerDashboard /> : null)
+        : <AttendanceReportView />}
     </div>
   );
 }
