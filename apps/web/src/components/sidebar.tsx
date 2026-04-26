@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { STAFF_ROLES } from "@zhyj/shared";
 import StoreSwitcher from "@/components/store-switcher";
+import { cn } from "@/lib/utils";
 import {
   Activity,
   Calendar,
@@ -23,6 +24,7 @@ import {
   PartyPopper,
   LayoutDashboard,
   LogOut,
+  X,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -54,7 +56,12 @@ const managementItems = [
 /*  Sidebar component                                                  */
 /* ------------------------------------------------------------------ */
 
-export default function Sidebar() {
+interface SidebarProps {
+  open?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -76,22 +83,56 @@ export default function Sidebar() {
     router.push("/login");
   }
 
-  return (
-    <aside className="fixed left-0 top-0 bottom-0 z-40 flex group" aria-label="主导航">
-      {/* ── Narrow icon rail — always visible ── */}
-      <div className="w-16 bg-apple-sidebar flex flex-col items-center shrink-0">
-        {/* Brand mark */}
-        <Link
-          href="/monitoring"
-          className="flex flex-col items-center justify-center w-full h-16 text-apple-sidebar-foreground/90 hover:text-apple-sidebar-foreground transition-colors"
-        >
-          <LayoutDashboard className="w-6 h-6 mb-0.5" strokeWidth={1.5} />
-          <span className="text-[9px] font-medium tracking-wider opacity-60">
-            精卫识仪
-          </span>
-        </Link>
+  function handleNavClick() {
+    onClose?.();
+  }
 
-        <div className="w-8 h-px bg-white/10 mb-2" />
+  return (
+    <>
+      {/* ── Tablet backdrop overlay ── */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-200 lg:hidden",
+          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <aside
+        className={cn(
+          "fixed left-0 top-0 bottom-0 z-50 flex group",
+          "transition-transform duration-200 ease-out",
+          "lg:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
+        aria-label="主导航"
+      >
+        {/* ── Narrow icon rail ── */}
+        <div className="w-16 bg-apple-sidebar flex flex-col items-center shrink-0">
+          {/* Brand mark */}
+          <Link
+            href="/monitoring"
+            onClick={handleNavClick}
+            className="flex flex-col items-center justify-center w-full h-16 text-apple-sidebar-foreground/90 hover:text-apple-sidebar-foreground transition-colors"
+          >
+            <LayoutDashboard className="w-6 h-6 mb-0.5" strokeWidth={1.5} />
+            <span className="text-[9px] font-medium tracking-wider opacity-60">
+              精卫识仪
+            </span>
+          </Link>
+
+          {/* Close button — tablet only */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors lg:hidden"
+            aria-label="关闭菜单"
+          >
+            <X className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+
+          <div className="w-8 h-px bg-white/10 mb-2" />
 
         {/* Navigation icons */}
         <nav className="flex-1 flex flex-col items-center gap-0.5 w-full px-1.5 overflow-y-auto">
@@ -111,6 +152,7 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={handleNavClick}
                   title={item.label}
                   className={`relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-150 ${
                     active
@@ -145,6 +187,7 @@ export default function Sidebar() {
                       <Link
                         key={item.href}
                         href={item.href}
+                        onClick={handleNavClick}
                         title={item.label}
                         className={`relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-150 ${
                           active
@@ -176,22 +219,23 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* ── Expanded flyout panel — visible on hover ── */}
+      {/* ── Expanded flyout panel ── */}
       <div
-        className="
-          w-60 bg-apple-sidebar border-l border-white/[0.06]
-          overflow-hidden
-          opacity-0 group-hover:opacity-100
-          -translate-x-2 group-hover:translate-x-0
-          transition-all duration-200 ease-out
-          pointer-events-none group-hover:pointer-events-auto
-          absolute left-16 top-0 bottom-0
-          flex flex-col
-        "
+        className={cn(
+          "w-60 bg-apple-sidebar border-l border-white/[0.06]",
+          "flex flex-col overflow-hidden shrink-0",
+          /* Desktop (lg+): absolute positioning with hover-expand */
+          "lg:absolute lg:left-16 lg:top-0 lg:bottom-0",
+          "lg:opacity-0 lg:group-hover:opacity-100",
+          "lg:-translate-x-2 lg:group-hover:translate-x-0",
+          "lg:transition-all lg:duration-200 lg:ease-out",
+          "lg:pointer-events-none lg:group-hover:pointer-events-auto"
+        )}
       >
         {/* Brand header */}
         <Link
           href="/monitoring"
+          onClick={handleNavClick}
           className="flex items-center gap-3 px-5 h-16 text-apple-sidebar-foreground hover:bg-white/5 transition-colors"
         >
           <LayoutDashboard className="w-5 h-5 text-primary" strokeWidth={1.5} />
@@ -227,6 +271,7 @@ export default function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={handleNavClick}
                     className={`relative flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-all duration-150 ${
                       active
                         ? "bg-primary/15 text-white font-medium"
@@ -263,6 +308,7 @@ export default function Sidebar() {
                       <Link
                         key={item.href}
                         href={item.href}
+                        onClick={handleNavClick}
                         className={`relative flex items-center gap-3 px-3 py-1.5 rounded-md text-[13px] transition-all duration-150 ${
                           active
                             ? "bg-primary/15 text-white font-medium"
@@ -305,5 +351,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }
