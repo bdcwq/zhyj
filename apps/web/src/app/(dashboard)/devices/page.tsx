@@ -1,8 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { FormEvent } from "react";
+import { Plus } from "lucide-react";
 import { MACHINE_STATUS } from "@zhyj/shared";
+import { DataTable, type Column } from "@/components/data-table";
+import { FormModal } from "@/components/form-modal";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /* ─── Types ─── */
 
@@ -39,6 +52,8 @@ interface ModalForm {
   status: string;
 }
 
+/* ─── Constants ─── */
+
 const EMPTY_FORM: ModalForm = {
   name: "",
   roomId: "",
@@ -52,11 +67,11 @@ const STATUS_LABELS: Record<string, string> = {
   [MACHINE_STATUS.OUT_OF_SERVICE]: "停用",
 };
 
-const STATUS_BADGE_CLASSES: Record<string, string> = {
-  [MACHINE_STATUS.AVAILABLE]: "bg-green-50 text-green-700 ring-green-600/20",
-  [MACHINE_STATUS.IN_USE]: "bg-blue-50 text-blue-700 ring-blue-600/20",
-  [MACHINE_STATUS.MAINTENANCE]: "bg-yellow-50 text-yellow-700 ring-yellow-600/20",
-  [MACHINE_STATUS.OUT_OF_SERVICE]: "bg-red-50 text-red-700 ring-red-600/20",
+const STATUS_COLOR_MAP: Record<string, string> = {
+  [MACHINE_STATUS.AVAILABLE]: "bg-apple-success/10 text-apple-success",
+  [MACHINE_STATUS.IN_USE]: "bg-apple-primary/10 text-apple-primary",
+  [MACHINE_STATUS.MAINTENANCE]: "bg-apple-warning/10 text-apple-warning",
+  [MACHINE_STATUS.OUT_OF_SERVICE]: "bg-apple-error/10 text-apple-error",
 };
 
 const PAGE_SIZE = 20;
@@ -100,7 +115,6 @@ export default function DevicesPage() {
       });
       const json = await res.json();
       if (json.success) {
-        // Handle both paginated response and plain array
         const records = Array.isArray(json.data)
           ? json.data
           : json.data.records ?? [];
@@ -122,8 +136,10 @@ export default function DevicesPage() {
         limit: String(PAGE_SIZE),
         offset: String(offset),
       });
-      if (roomFilter) params.set("roomId", roomFilter);
-      if (statusFilter) params.set("status", statusFilter);
+      if (roomFilter && roomFilter !== "_all")
+        params.set("roomId", roomFilter);
+      if (statusFilter && statusFilter !== "_all")
+        params.set("status", statusFilter);
 
       const res = await fetch(`/api/v1/machines?${params}`, {
         credentials: "include",
@@ -196,8 +212,7 @@ export default function DevicesPage() {
     setFormError("");
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleSubmit() {
     setFormError("");
     setFormSubmitting(true);
 
@@ -217,7 +232,7 @@ export default function DevicesPage() {
         const body: Record<string, unknown> = {
           name: form.name.trim(),
         };
-        if (form.roomId) body.roomId = form.roomId;
+        if (form.roomId && form.roomId !== "_none") body.roomId = form.roomId;
         if (form.status) body.status = form.status;
 
         const res = await fetch("/api/v1/machines", {
@@ -238,10 +253,11 @@ export default function DevicesPage() {
         const body: Record<string, unknown> = {};
         if (form.name.trim() !== editingMachine.name)
           body.name = form.name.trim();
-        if (form.roomId !== (editingMachine.roomId ?? ""))
-          body.roomId = form.roomId || null;
-        if (form.status !== editingMachine.status)
-          body.status = form.status;
+        const effectiveRoomId =
+          form.roomId === "_none" ? "" : form.roomId;
+        if (effectiveRoomId !== (editingMachine.roomId ?? ""))
+          body.roomId = effectiveRoomId || null;
+        if (form.status !== editingMachine.status) body.status = form.status;
 
         if (Object.keys(body).length === 0) {
           closeModal();
@@ -296,383 +312,222 @@ export default function DevicesPage() {
     }
   }
 
-  // ── Derived ──
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // ── Column definitions (MEM074: inside component body) ──
+  const columns: Column<MachineRecord>[] = [
+    {
+      key: "name",
+      header: "名称",
+      render: (machine) => (
+        <span className="font-medium text-foreground">{machine.name}</span>
+      ),
+    },
+    {
+      key: "room",
+      header: "归属房间",
+      render: (machine) =>
+        machine.room ? (
+          <span className="text-muted-foreground">{machine.room.name}</span>
+        ) : (
+          <span className="text-muted-foreground/60">未分配</span>
+        ),
+    },
+    {
+      key: "status",
+      header: "状态",
+      render: (machine) => (
+        <StatusBadge
+          status={machine.status}
+          colorMap={STATUS_COLOR_MAP}
+          labelMap={STATUS_LABELS}
+          variant="ring"
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "操作",
+      className: "text-right",
+      render: (machine) => (
+        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-primary hover:text-primary/80"
+            onClick={() => openEditModal(machine)}
+          >
+            编辑
+          </Button>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-apple-error hover:text-apple-error/80"
+            onClick={() => confirmDelete(machine)}
+          >
+            删除
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
       {/* ── Page header ── */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
-          设备管理
-        </h2>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
-          添加设备
-        </button>
-      </div>
+      <PageHeader
+        title="设备管理"
+        actions={
+          <Button onClick={openCreateModal} size="sm">
+            <Plus className="h-4 w-4" />
+            添加设备
+          </Button>
+        }
+      />
 
-      {/* ── Filter bar ── */}
-      <div className="flex items-center gap-3">
-        <select
-          value={roomFilter}
-          onChange={(e) => handleRoomFilterChange(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-        >
-          <option value="">全部房间</option>
-          {rooms.map((room) => (
-            <option key={room.id} value={room.id}>
-              {room.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => handleStatusFilterChange(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-        >
-          <option value="">全部状态</option>
-          {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* ── Data table with filters ── */}
+      <DataTable
+        columns={columns}
+        data={machineList}
+        loading={listLoading}
+        error={listError}
+        total={total}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        onRetry={fetchMachines}
+        emptyMessage="暂无设备数据"
+        filter={
+          <div className="flex items-center gap-2">
+            <Select
+              value={roomFilter || "_all"}
+              onValueChange={handleRoomFilterChange}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="全部房间" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">全部房间</SelectItem>
+                {rooms.map((room) => (
+                  <SelectItem key={room.id} value={room.id}>
+                    {room.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-      {/* ── Error banner ── */}
-      {listError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {listError}
-          <button
-            type="button"
-            onClick={fetchMachines}
-            className="ml-2 underline hover:no-underline"
-          >
-            重试
-          </button>
-        </div>
-      )}
-
-      {/* ── Machines table ── */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                名称
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                归属房间
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                状态
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                操作
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {listLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={`skel-${i}`}>
-                  {Array.from({ length: 4 }).map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div
-                        className="h-4 bg-gray-100 rounded animate-pulse"
-                        style={{
-                          width: `${60 + Math.random() * 40}%`,
-                        }}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : machineList.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-4 py-12 text-center text-sm text-gray-400"
-                >
-                  暂无设备数据
-                </td>
-              </tr>
-            ) : (
-              machineList.map((machine) => (
-                <tr
-                  key={machine.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                    {machine.name}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm">
-                    {machine.room ? (
-                      <span className="text-gray-700">
-                        {machine.room.name}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">未分配</span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                        STATUS_BADGE_CLASSES[machine.status] ||
-                        STATUS_BADGE_CLASSES[MACHINE_STATUS.AVAILABLE]
-                      }`}
-                    >
-                      {STATUS_LABELS[machine.status] || machine.status}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(machine)}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                    >
-                      编辑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => confirmDelete(machine)}
-                      className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
-                    >
-                      删除
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* ── Pagination ── */}
-        {!listLoading && total > 0 && (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-sm text-gray-500">
-              共 {total} 条，第 {page} / {totalPages} 页
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                下一页
-              </button>
-            </div>
+            <Select
+              value={statusFilter || "_all"}
+              onValueChange={handleStatusFilterChange}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="全部状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">全部状态</SelectItem>
+                {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
-      </div>
+        }
+      />
 
       {/* ── Create / Edit Modal ── */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={closeModal}
-          />
-          {/* Dialog */}
-          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {modalMode === "create" ? "添加设备" : "编辑设备"}
-              </h3>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {formError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                  {formError}
-                </div>
-              )}
-
-              <div>
-                <label
-                  htmlFor="machine-name"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  设备名称 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="machine-name"
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => updateForm("name", e.target.value)}
-                  maxLength={50}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  placeholder="请输入设备名称"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="machine-room"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  归属房间
-                </label>
-                <select
-                  id="machine-room"
-                  value={form.roomId}
-                  onChange={(e) => updateForm("roomId", e.target.value)}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                >
-                  <option value="">未分配</option>
-                  {rooms.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      {room.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="machine-status"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  状态
-                </label>
-                <select
-                  id="machine-status"
-                  value={form.status}
-                  onChange={(e) => updateForm("status", e.target.value)}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                >
-                  {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  disabled={formSubmitting}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {formSubmitting && (
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                  )}
-                  {modalMode === "create" ? "创建" : "保存"}
-                </button>
-              </div>
-            </form>
+      <FormModal
+        open={showModal}
+        onOpenChange={(open) => {
+          if (!open) closeModal();
+        }}
+        title={modalMode === "create" ? "添加设备" : "编辑设备"}
+        onSubmit={handleSubmit}
+        submitting={formSubmitting}
+        error={formError}
+        submitLabel={modalMode === "create" ? "创建" : "保存"}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          className="space-y-4"
+        >
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              设备名称 <span className="text-apple-error">*</span>
+            </label>
+            <Input
+              value={form.name}
+              onChange={(e) => updateForm("name", e.target.value)}
+              maxLength={50}
+              placeholder="请输入设备名称"
+            />
           </div>
-        </div>
-      )}
 
-      {/* ── Delete confirmation dialog ── */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setDeleteTarget(null)}
-          />
-          <div className="relative z-10 w-full max-w-sm rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              确认删除
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              确定要删除设备「{deleteTarget.name}」吗？删除后该设备将被停用。
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                disabled={deleteSubmitting}
-                onClick={handleDeleteConfirm}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
-                {deleteSubmitting && (
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                )}
-                删除
-              </button>
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              归属房间
+            </label>
+            <Select
+              value={form.roomId || "_none"}
+              onValueChange={(value) => updateForm("roomId", value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="未分配" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">未分配</SelectItem>
+                {rooms.map((room) => (
+                  <SelectItem key={room.id} value={room.id}>
+                    {room.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              状态
+            </label>
+            <Select
+              value={form.status}
+              onValueChange={(value) => updateForm("status", value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="选择状态" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </form>
+      </FormModal>
+
+      {/* ── Delete confirmation ── */}
+      <FormModal
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="确认删除"
+        description={
+          deleteTarget
+            ? `确定要删除设备「${deleteTarget.name}」吗？删除后该设备将被停用。`
+            : undefined
+        }
+        onSubmit={handleDeleteConfirm}
+        submitting={deleteSubmitting}
+        submitLabel="删除"
+      >
+        <></>
+      </FormModal>
     </div>
   );
 }
