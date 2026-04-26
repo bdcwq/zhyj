@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Map storeId to storeName
-    const storeMap = new Map(stores.map((s) => [s.id, s.name]));
+    const storeMap = new Map(stores.map((s: { id: string; name: string }) => [s.id, s.name]));
 
     const result = serializeRecords(records).map((r: any) => ({
       storeId: r.storeId,

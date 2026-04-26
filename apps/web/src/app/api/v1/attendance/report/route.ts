@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
 
     // Build per-staff summary for each staff member
     const summaries = await Promise.all(
-      staffList.map(async (staff) => {
+      staffList.map(async (staff: { id: string; name: string }) => {
         // Attendance counts for the month
         const attendances = await prisma.attendance.findMany({
           where: {
@@ -153,12 +153,12 @@ export async function GET(request: NextRequest) {
               select: { scheduleId: true },
             })
           )
-            .map((a) => a.scheduleId)
+            .map((a: { scheduleId: string | null }) => a.scheduleId)
             .filter(Boolean),
         );
 
         const absentDays = scheduledShifts.filter(
-          (s) => !attendedScheduleIds.has(s.id),
+          (s: { id: string }) => !attendedScheduleIds.has(s.id),
         ).length;
 
         return {

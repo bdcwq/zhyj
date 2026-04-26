@@ -24,30 +24,44 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-apple-success: hsl(var(--apple-success));
+  --color-apple-warning: hsl(var(--apple-warning));
+  --color-apple-error: hsl(var(--apple-error));
+  --color-apple-link: hsl(var(--apple-link));
+  --color-apple-sidebar: hsl(var(--apple-sidebar));
+  --color-apple-sidebar-foreground: hsl(var(--apple-sidebar-foreground));
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 240 11% 96%;
+    --foreground: 240 3% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 240 3% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    --popover-foreground: 240 3% 12%;
+    --primary: 210 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 12% 92%;
+    --secondary-foreground: 240 3% 12%;
+    --muted: 240 11% 96%;
+    --muted-foreground: 240 2% 44%;
+    --accent: 240 12% 92%;
+    --accent-foreground: 240 3% 12%;
+    --destructive: 3 100% 59%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 83%;
+    --input: 240 2% 54%;
+    --ring: 210 100% 45%;
     --radius: 0.5rem;
+    --apple-success: 135 59% 49%;
+    --apple-warning: 36 100% 52%;
+    --apple-error: 3 100% 59%;
+    --apple-link: 210 100% 40%;
+    --apple-sidebar: 240 3% 12%;
+    --apple-sidebar-foreground: 0 0% 100%;
   }
 }
 
@@ -56,6 +70,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body), -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   }
 }

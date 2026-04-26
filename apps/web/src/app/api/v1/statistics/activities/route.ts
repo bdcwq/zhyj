@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         ? Math.round((noShowCount / totalRegistrations) * 1000) / 10
         : 0;
 
-    const breakdown = typeBreakdown.map((item) => ({
+    const breakdown = typeBreakdown.map((item: any) => ({
       type: item.type,
       count: item._count.id,
       totalParticipants: item._sum.currentCapacity ?? 0,
