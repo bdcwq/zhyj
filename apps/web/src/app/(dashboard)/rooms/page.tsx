@@ -1,7 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { FormEvent } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus } from "lucide-react";
+import { DataTable, type Column } from "@/components/data-table";
+import { FormModal } from "@/components/form-modal";
+import { PageHeader } from "@/components/page-header";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 /* ─── Types ─── */
 
@@ -30,6 +35,8 @@ interface ModalForm {
   name: string;
   capacity: string;
 }
+
+/* ─── Constants ─── */
 
 const EMPTY_FORM: ModalForm = {
   name: "",
@@ -64,9 +71,7 @@ export default function RoomsPage() {
   } | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
-  // ── Debounced search ──
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
+  // ── Fetch rooms ──
   const fetchRooms = useCallback(async () => {
     setListLoading(true);
     setListError("");
@@ -100,14 +105,10 @@ export default function RoomsPage() {
     fetchRooms();
   }, [fetchRooms]);
 
-  // Debounce search input
+  // ── Search handler (DataTable debounces internally) ──
   function handleSearchChange(value: string) {
     setSearch(value);
     setPage(1);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      // fetchRooms will fire via the useEffect deps (search changed)
-    }, 300);
   }
 
   // ── Modal handlers ──
@@ -142,8 +143,7 @@ export default function RoomsPage() {
     setFormError("");
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleSubmit() {
     setFormError("");
     setFormSubmitting(true);
 
@@ -238,344 +238,144 @@ export default function RoomsPage() {
     }
   }
 
-  // ── Derived ──
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // ── Column definitions (MEM074: inside component body) ──
+  const columns: Column<RoomRecord>[] = [
+    {
+      key: "name",
+      header: "名称",
+      render: (room) => (
+        <span className="font-medium text-foreground">{room.name}</span>
+      ),
+    },
+    { key: "capacity", header: "容量" },
+    {
+      key: "machines",
+      header: "设备数量",
+      render: (room) => (
+        <span className="text-muted-foreground">{room._count.machines}</span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "操作",
+      className: "text-right",
+      render: (room) => (
+        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-primary hover:text-primary/80"
+            onClick={() => openEditModal(room)}
+          >
+            编辑
+          </Button>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-apple-error hover:text-apple-error/80"
+            onClick={() => confirmDelete(room)}
+          >
+            删除
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
       {/* ── Page header ── */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
-          房间管理
-        </h2>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
-          添加房间
-        </button>
-      </div>
+      <PageHeader
+        title="房间管理"
+        actions={
+          <Button onClick={openCreateModal} size="sm">
+            <Plus className="h-4 w-4" />
+            添加房间
+          </Button>
+        }
+      />
 
-      {/* ── Search bar ── */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <svg
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-            />
-          </svg>
-          <input
-            type="text"
-            placeholder="搜索房间名称"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-          />
-        </div>
-      </div>
-
-      {/* ── Error banner ── */}
-      {listError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {listError}
-          <button
-            type="button"
-            onClick={fetchRooms}
-            className="ml-2 underline hover:no-underline"
-          >
-            重试
-          </button>
-        </div>
-      )}
-
-      {/* ── Rooms table ── */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                名称
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                容量
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                设备数量
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                操作
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {listLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={`skel-${i}`}>
-                  {Array.from({ length: 4 }).map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div
-                        className="h-4 bg-gray-100 rounded animate-pulse"
-                        style={{
-                          width: `${60 + Math.random() * 40}%`,
-                        }}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : roomList.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-4 py-12 text-center text-sm text-gray-400"
-                >
-                  暂无房间数据
-                </td>
-              </tr>
-            ) : (
-              roomList.map((room) => (
-                <tr
-                  key={room.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                    {room.name}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                    {room.capacity}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                    {room._count.machines}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(room)}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                    >
-                      编辑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => confirmDelete(room)}
-                      className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
-                    >
-                      删除
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* ── Pagination ── */}
-        {!listLoading && total > 0 && (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-sm text-gray-500">
-              共 {total} 条，第 {page} / {totalPages} 页
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                下一页
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* ── Data table with search ── */}
+      <DataTable
+        columns={columns}
+        data={roomList}
+        loading={listLoading}
+        error={listError}
+        total={total}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        onSearch={handleSearchChange}
+        searchPlaceholder="搜索房间名称"
+        onRetry={fetchRooms}
+        emptyMessage="暂无房间数据"
+      />
 
       {/* ── Create / Edit Modal ── */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={closeModal}
-          />
-          {/* Dialog */}
-          <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {modalMode === "create" ? "添加房间" : "编辑房间"}
-              </h3>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {formError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                  {formError}
-                </div>
-              )}
-
-              <div>
-                <label
-                  htmlFor="room-name"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  房间名称 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="room-name"
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => updateForm("name", e.target.value)}
-                  maxLength={50}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  placeholder="请输入房间名称"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="room-capacity"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  容量 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="room-capacity"
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={form.capacity}
-                  onChange={(e) => updateForm("capacity", e.target.value)}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  placeholder="请输入容量 (1-100)"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  disabled={formSubmitting}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {formSubmitting && (
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                  )}
-                  {modalMode === "create" ? "创建" : "保存"}
-                </button>
-              </div>
-            </form>
+      <FormModal
+        open={showModal}
+        onOpenChange={(open) => {
+          if (!open) closeModal();
+        }}
+        title={modalMode === "create" ? "添加房间" : "编辑房间"}
+        onSubmit={handleSubmit}
+        submitting={formSubmitting}
+        error={formError}
+        submitLabel={modalMode === "create" ? "创建" : "保存"}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          className="space-y-4"
+        >
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              房间名称 <span className="text-apple-error">*</span>
+            </label>
+            <Input
+              value={form.name}
+              onChange={(e) => updateForm("name", e.target.value)}
+              maxLength={50}
+              placeholder="请输入房间名称"
+            />
           </div>
-        </div>
-      )}
 
-      {/* ── Delete confirmation dialog ── */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setDeleteTarget(null)}
-          />
-          <div className="relative z-10 w-full max-w-sm rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              确认删除
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              确定要删除房间「{deleteTarget.name}」吗？删除后该房间及其所有设备将被停用。
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                disabled={deleteSubmitting}
-                onClick={handleDeleteConfirm}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
-                {deleteSubmitting && (
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                )}
-                删除
-              </button>
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              容量 <span className="text-apple-error">*</span>
+            </label>
+            <Input
+              type="number"
+              min={1}
+              max={100}
+              value={form.capacity}
+              onChange={(e) => updateForm("capacity", e.target.value)}
+              placeholder="请输入容量 (1-100)"
+            />
           </div>
-        </div>
-      )}
+        </form>
+      </FormModal>
+
+      {/* ── Delete confirmation ── */}
+      <FormModal
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="确认删除"
+        description={
+          deleteTarget
+            ? `确定要删除房间「${deleteTarget.name}」吗？删除后该房间及其所有设备将被停用。`
+            : undefined
+        }
+        onSubmit={handleDeleteConfirm}
+        submitting={deleteSubmitting}
+        submitLabel="删除"
+      >
+        <></>
+      </FormModal>
     </div>
   );
 }
