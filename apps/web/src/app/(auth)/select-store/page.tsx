@@ -61,37 +61,54 @@ export default function SelectStorePage() {
 
   if (loading) {
     return (
-      <div className="text-center text-gray-500">加载中...</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground text-sm">加载中...</div>
+      </div>
     );
   }
 
   return (
-    <div className="w-full max-w-md">
-      <h2 className="text-2xl font-semibold text-center mb-6">选择门店</h2>
-      {error && (
-        <div className="mb-4 p-2 bg-red-50 text-red-600 text-sm rounded">
-          {error}
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-card rounded-2xl shadow-sm p-8">
+          <h2 className="font-display text-2xl font-semibold text-center text-foreground">
+            选择门店
+          </h2>
+          <p className="mt-1 text-sm text-center text-muted-foreground mb-6">
+            请选择要管理的门店
+          </p>
+
+          {error && (
+            <div className="mb-4 rounded-lg bg-apple-error/10 px-4 py-2.5 text-sm text-apple-error">
+              {error}
+            </div>
+          )}
+
+          {stores.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground text-sm">
+              暂无可用的门店
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {stores.map((store) => (
+                <button
+                  key={store.id}
+                  onClick={() => handleSelectStore(store.id)}
+                  disabled={switching !== null}
+                  className="w-full p-4 rounded-xl border border-border bg-card text-left hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="font-medium text-foreground">
+                    {store.name}
+                  </div>
+                  {switching === store.id && (
+                    <div className="text-sm text-primary mt-1">切换中...</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-      {stores.length === 0 ? (
-        <div className="text-center text-gray-500">暂无可用的门店</div>
-      ) : (
-        <div className="space-y-3">
-          {stores.map((store) => (
-            <button
-              key={store.id}
-              onClick={() => handleSelectStore(store.id)}
-              disabled={switching !== null}
-              className="w-full p-4 bg-white border border-gray-200 rounded-lg text-left hover:border-blue-400 hover:shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div className="font-medium">{store.name}</div>
-              {switching === store.id && (
-                <div className="text-sm text-blue-500 mt-1">切换中...</div>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
