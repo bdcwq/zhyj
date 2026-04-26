@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Parse JSON fields for response
-    const parsed = records.map((r) => ({
+    const parsed = records.map((r: any) => ({
       ...r,
       shifts: JSON.parse(r.shifts),
       effectiveDays: JSON.parse(r.effectiveDays),

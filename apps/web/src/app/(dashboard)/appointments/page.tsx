@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { APPOINTMENT_STATUS } from "@zhyj/shared";
+import { PageHeader } from "@/components/page-header";
+import { DataTable, type Column } from "@/components/data-table";
+import { StatusBadge } from "@/components/status-badge";
+import { ErrorBanner } from "@/components/error-banner";
 
 const fetchWithAuth = (url: string, init?: RequestInit) =>
   fetch(url, { ...init, credentials: "include" });
@@ -34,17 +39,17 @@ interface Appointment {
   status: string;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  booked: "bg-blue-100 text-blue-700",
-  confirmed: "bg-yellow-100 text-yellow-700",
-  verified: "bg-green-100 text-green-700",
-  in_progress: "bg-orange-100 text-orange-700",
-  completed: "bg-gray-100 text-gray-700",
-  cancelled: "bg-red-100 text-red-700",
-  no_show: "bg-red-100 text-red-700",
+const APPOINTMENT_COLOR_MAP: Record<string, string> = {
+  booked: "bg-primary/10 text-primary",
+  confirmed: "bg-apple-warning/10 text-apple-warning",
+  verified: "bg-apple-success/10 text-apple-success",
+  in_progress: "bg-apple-warning/10 text-apple-warning",
+  completed: "bg-muted text-muted-foreground",
+  cancelled: "bg-apple-error/10 text-apple-error",
+  no_show: "bg-apple-error/10 text-apple-error",
 };
 
-const STATUS_LABELS: Record<string, string> = {
+const APPOINTMENT_LABEL_MAP: Record<string, string> = {
   booked: "已预约",
   confirmed: "已确认",
   verified: "已核销",
@@ -179,17 +184,80 @@ export default function AppointmentsPage() {
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
   const minDatetime = now.toISOString().slice(0, 16);
 
+  const columns: Column<Appointment>[] = [
+    {
+      key: "scheduledAt",
+      header: "预约时间",
+      render: (a) => new Date(a.scheduledAt).toLocaleString("zh-CN"),
+    },
+    {
+      key: "resident",
+      header: "居民",
+      render: (a) => a.resident?.name || "-",
+    },
+    {
+      key: "room",
+      header: "房间",
+      render: (a) => a.room?.name || "-",
+    },
+    {
+      key: "machine",
+      header: "设备",
+      render: (a) => a.machine?.name || "-",
+    },
+    {
+      key: "status",
+      header: "状态",
+      render: (a) => (
+        <StatusBadge
+          status={a.status}
+          colorMap={APPOINTMENT_COLOR_MAP}
+          labelMap={APPOINTMENT_LABEL_MAP}
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "操作",
+      render: (a) =>
+        a.status === APPOINTMENT_STATUS.BOOKED ||
+        a.status === APPOINTMENT_STATUS.CONFIRMED ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleCancel(a.id)}
+            className="text-apple-error hover:text-apple-error/80 hover:bg-apple-error/10"
+          >
+            取消
+          </Button>
+        ) : null,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">预约管理</h2>
+      <PageHeader
+        title="预约管理"
+        description="管理居民预约、查看预约状态"
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open("/api/v1/export/appointments", "_blank")}
+          >
+            <Download className="mr-1.5 h-4 w-4" />
+            导出
+          </Button>
+        }
+      />
 
       {/* New booking form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg border p-4 space-y-3"
+        className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-4"
       >
-        <h3 className="font-medium">新建预约</h3>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        <h3 className="text-base font-semibold text-foreground">新建预约</h3>
+        {error && <ErrorBanner message={error} />}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <Label htmlFor="resident">居民</Label>
@@ -260,74 +328,14 @@ export default function AppointmentsPage() {
         </Button>
       </form>
 
-      {/* Appointments list */}
-      <div className="bg-white rounded-lg border p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium">预约列表</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open("/api/v1/export/appointments", "_blank")}
-          >
-            <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            导出
-          </Button>
-        </div>
-        {loading ? (
-          <p className="text-sm text-gray-400">加载中...</p>
-        ) : appointments.length === 0 ? (
-          <p className="text-sm text-gray-400">暂无预约</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="pb-2">预约时间</th>
-                <th className="pb-2">居民</th>
-                <th className="pb-2">房间</th>
-                <th className="pb-2">设备</th>
-                <th className="pb-2">状态</th>
-                <th className="pb-2">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.map((a) => (
-                <tr key={a.id} className="border-b last:border-0">
-                  <td className="py-2">
-                    {new Date(a.scheduledAt).toLocaleString("zh-CN")}
-                  </td>
-                  <td className="py-2">{a.resident?.name || "-"}</td>
-                  <td className="py-2">{a.room?.name || "-"}</td>
-                  <td className="py-2">{a.machine?.name || "-"}</td>
-                  <td className="py-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs ${
-                        STATUS_COLORS[a.status] || "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {STATUS_LABELS[a.status] || a.status}
-                    </span>
-                  </td>
-                  <td className="py-2">
-                    {a.status === APPOINTMENT_STATUS.BOOKED ||
-                    a.status === APPOINTMENT_STATUS.CONFIRMED ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCancel(a.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        取消
-                      </Button>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Appointments table */}
+      <DataTable
+        columns={columns}
+        data={appointments}
+        loading={loading}
+        onRetry={loadAppointments}
+        emptyMessage="暂无预约"
+      />
     </div>
   );
 }

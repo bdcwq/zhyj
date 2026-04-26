@@ -11,7 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function StoreSwitcher() {
+interface StoreSwitcherProps {
+  dark?: boolean;
+}
+
+export default function StoreSwitcher({ dark }: StoreSwitcherProps) {
   const router = useRouter();
   const [stores, setStores] = useState<StoreSummary[]>([]);
   const [currentStoreId, setCurrentStoreId] = useState<string>("");
@@ -67,7 +71,13 @@ export default function StoreSwitcher() {
     // Show just the store name if single store
     if (stores.length === 1) {
       return (
-        <span className="text-sm text-gray-600 px-3 py-1.5 border rounded-md">
+        <span
+          className={`text-sm px-3 py-1.5 border rounded-md ${
+            dark
+              ? "text-white/80 border-white/20 bg-white/5"
+              : "text-gray-600 border-gray-200 bg-white"
+          }`}
+        >
           {stores[0].name}
         </span>
       );
@@ -77,12 +87,32 @@ export default function StoreSwitcher() {
 
   return (
     <Select value={currentStoreId} onValueChange={handleSwitch} disabled={switching}>
-      <SelectTrigger className="w-[180px]">
+      <SelectTrigger
+        className={
+          dark
+            ? "w-[180px] bg-white/10 border-white/20 text-white hover:bg-white/15 [&>span]:text-white [&>span_svg]:text-white/70"
+            : "w-[180px]"
+        }
+      >
         <SelectValue placeholder={switching ? "切换中..." : "选择门店"} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent
+        className={
+          dark
+            ? "bg-[#1a1a2e] border-white/10 text-white/90"
+            : ""
+        }
+      >
         {stores.map((store) => (
-          <SelectItem key={store.id} value={store.id}>
+          <SelectItem
+            key={store.id}
+            value={store.id}
+            className={
+              dark
+                ? "text-white/80 hover:bg-white/10 focus:bg-white/10 focus:text-white"
+                : ""
+            }
+          >
             {store.name}
           </SelectItem>
         ))}

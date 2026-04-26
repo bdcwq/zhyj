@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { StatCard } from "@/components/stat-card";
+import { PageHeader } from "@/components/page-header";
+import { ErrorBanner } from "@/components/error-banner";
 import {
   BarChart,
   Bar,
@@ -12,6 +15,27 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+
+// ── Apple chart color constants ──
+
+const APPLE_BLUE = "#0071e3";
+const APPLE_GREEN = "#34C759";
+const APPLE_ORANGE = "#FF9F0A";
+const APPLE_RED = "#FF3B30";
+const APPLE_PURPLE = "#AF52DE";
+const APPLE_CYAN = "#5AC8FA";
+const CARTESIAN_STROKE = "#e5e5e5";
+
+const STORE_COLORS = [
+  APPLE_BLUE,
+  APPLE_GREEN,
+  APPLE_ORANGE,
+  APPLE_RED,
+  APPLE_PURPLE,
+  APPLE_CYAN,
+  "#FF6482",
+  "#BF5AF2",
+];
 
 // ── Types ──
 
@@ -59,17 +83,6 @@ const PERIOD_LABELS: Record<Period, string> = {
   weekly: "周",
   monthly: "月",
 };
-
-const STORE_COLORS = [
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#06b6d4",
-  "#f97316",
-  "#ec4899",
-];
 
 // ── Component ──
 
@@ -166,9 +179,9 @@ export default function CrossStoreReportPage() {
   if (authLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-gray-200 rounded" />
-        <div className="h-10 w-full bg-gray-200 rounded" />
-        <div className="h-64 w-full bg-gray-200 rounded" />
+        <div className="h-8 w-48 bg-muted rounded" />
+        <div className="h-10 w-full bg-muted rounded" />
+        <div className="h-64 w-full bg-muted rounded" />
       </div>
     );
   }
@@ -176,11 +189,11 @@ export default function CrossStoreReportPage() {
   if (role !== "admin") {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <svg className="h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <svg className="h-16 w-16 text-muted-foreground/30 mb-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
         </svg>
-        <h3 className="text-lg font-semibold text-gray-600 mb-2">权限不足</h3>
-        <p className="text-sm text-gray-400">仅管理员可查看跨店汇总报表</p>
+        <h3 className="text-lg font-semibold text-muted-foreground mb-2">权限不足</h3>
+        <p className="text-sm text-muted-foreground/60">仅管理员可查看跨店汇总报表</p>
       </div>
     );
   }
@@ -189,56 +202,35 @@ export default function CrossStoreReportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">跨店汇总报表</h2>
-      </div>
+      <PageHeader title="跨店汇总报表" />
 
       {/* Error banner */}
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-          <button type="button" onClick={loadData} className="ml-2 underline hover:no-underline">
-            重试
-          </button>
-        </div>
-      )}
+      {error && <ErrorBanner message={error} onRetry={loadData} />}
 
       {/* Overview cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-500">店铺总数</p>
-          <p className="mt-1 text-2xl font-bold text-blue-600">{loading ? "—" : overview.totalStores}</p>
-        </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-500">总监测次数</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-600">{loading ? "—" : overview.totalMonitoring}</p>
-        </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-500">总预约数</p>
-          <p className="mt-1 text-2xl font-bold text-violet-600">{loading ? "—" : overview.totalAppointments}</p>
-        </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-gray-500">总新居民</p>
-          <p className="mt-1 text-2xl font-bold text-cyan-600">{loading ? "—" : overview.totalNewResidents}</p>
-        </div>
+        <StatCard label="店铺总数" value={overview.totalStores} color="text-primary" loading={loading} />
+        <StatCard label="总监测次数" value={overview.totalMonitoring} color="text-apple-success" loading={loading} />
+        <StatCard label="总预约数" value={overview.totalAppointments} color="text-apple-purple" loading={loading} />
+        <StatCard label="总新居民" value={overview.totalNewResidents} color="text-apple-cyan" loading={loading} />
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4">
-        <div className="inline-flex items-center rounded-lg bg-gray-100 p-1">
+        <div className="inline-flex items-center rounded-lg bg-muted p-1">
           {(["daily", "weekly", "monthly"] as Period[]).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
               className={`rounded-md px-3 py-1 text-sm font-medium transition-all ${
-                period === p ? "bg-white text-gray-900 shadow" : "text-gray-500 hover:text-gray-700"
+                period === p ? "bg-card text-foreground shadow" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {PERIOD_LABELS[p]}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <label htmlFor="cs-dateFrom">从</label>
           <input
             id="cs-dateFrom"
@@ -246,7 +238,7 @@ export default function CrossStoreReportPage() {
             value={dateFrom}
             max={dateTo}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1"
+            className="rounded-md border border-border px-2 py-1"
           />
           <label htmlFor="cs-dateTo">至</label>
           <input
@@ -255,13 +247,13 @@ export default function CrossStoreReportPage() {
             value={dateTo}
             min={dateFrom}
             onChange={(e) => setDateTo(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1"
+            className="rounded-md border border-border px-2 py-1"
           />
         </div>
         <button
           onClick={loadData}
           disabled={loading}
-          className="rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? "加载中..." : "查询"}
         </button>
@@ -269,7 +261,7 @@ export default function CrossStoreReportPage() {
 
       {/* Charts */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-gray-400">
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
           <svg className="mr-2 h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -278,87 +270,87 @@ export default function CrossStoreReportPage() {
         </div>
       ) : reportData.length === 0 && !error ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <p className="text-sm text-gray-400">暂无数据</p>
+          <p className="text-sm text-muted-foreground/60">暂无数据</p>
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Store comparison bar chart */}
-          <div className="rounded-xl border bg-white p-5 shadow-sm">
-            <h3 className="mb-4 font-semibold text-gray-900">各店铺对比</h3>
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 font-semibold text-foreground">各店铺对比</h3>
             {chartData.length === 0 ? (
-              <p className="py-12 text-center text-sm text-gray-400">暂无数据</p>
+              <p className="py-12 text-center text-sm text-muted-foreground/60">暂无数据</p>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CARTESIAN_STROKE} />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="监测次数" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="预约数" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="完成数" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="新居民" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="监测次数" fill={APPLE_BLUE} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="预约数" fill={APPLE_PURPLE} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="完成数" fill={APPLE_GREEN} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="新居民" fill={APPLE_ORANGE} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
 
           {/* Appointment status stacked bar chart */}
-          <div className="rounded-xl border bg-white p-5 shadow-sm">
-            <h3 className="mb-4 font-semibold text-gray-900">预约状态分布</h3>
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 font-semibold text-foreground">预约状态分布</h3>
             {statusData.length === 0 ? (
-              <p className="py-12 text-center text-sm text-gray-400">暂无数据</p>
+              <p className="py-12 text-center text-sm text-muted-foreground/60">暂无数据</p>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={statusData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CARTESIAN_STROKE} />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="已预约" stackId="a" fill="#60a5fa" />
-                  <Bar dataKey="已完成" stackId="a" fill="#34d399" />
-                  <Bar dataKey="爽约" stackId="a" fill="#fbbf24" />
-                  <Bar dataKey="已取消" stackId="a" fill="#f87171" />
+                  <Bar dataKey="已预约" stackId="a" fill={APPLE_BLUE} />
+                  <Bar dataKey="已完成" stackId="a" fill={APPLE_GREEN} />
+                  <Bar dataKey="爽约" stackId="a" fill={APPLE_ORANGE} />
+                  <Bar dataKey="已取消" stackId="a" fill={APPLE_RED} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
 
           {/* Per-store detail table */}
-          <div className="rounded-xl border bg-white p-5 shadow-sm lg:col-span-2">
-            <h3 className="mb-4 font-semibold text-gray-900">各店铺详情</h3>
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
+            <h3 className="mb-4 font-semibold text-foreground">各店铺详情</h3>
             {reportData.length === 0 ? (
-              <p className="py-12 text-center text-sm text-gray-400">暂无数据</p>
+              <p className="py-12 text-center text-sm text-muted-foreground/60">暂无数据</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted/50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">店铺</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">员工数</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">监测次数</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">平均评分</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">预约数</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">完成数</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">爽约</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">新居民</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">店铺</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">员工数</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">监测次数</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">平均评分</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">预约数</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">完成数</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">爽约</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">新居民</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-border">
                     {reportData.map((store) => (
-                      <tr key={store.storeId} className="hover:bg-gray-50 transition-colors">
-                        <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{store.storeName}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{store.staffCount}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{store.monitoringCount}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
+                      <tr key={store.storeId} className="hover:bg-muted/30 transition-colors">
+                        <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground">{store.storeName}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-muted-foreground">{store.staffCount}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-muted-foreground">{store.monitoringCount}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-muted-foreground">
                           {store.avgScore !== null ? store.avgScore.toFixed(1) : "—"}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{store.booked}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{store.completed}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{store.no_show}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">{store.newResidentsCount}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-muted-foreground">{store.booked}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-muted-foreground">{store.completed}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-muted-foreground">{store.no_show}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-muted-foreground">{store.newResidentsCount}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -2,6 +2,15 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { FormEvent } from "react";
+import { Plus, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { DataTable, type Column } from "@/components/data-table";
+import { FormModal } from "@/components/form-modal";
+import { ErrorBanner } from "@/components/error-banner";
+import { StatusBadge } from "@/components/status-badge";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 /* ─── Types ─── */
 
@@ -84,11 +93,11 @@ const ACTIVITY_STATUS_LABELS: Record<string, string> = {
   cancelled: "已取消",
 };
 
-const ACTIVITY_STATUS_BADGE_CLASSES: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-700",
-  published: "bg-green-100 text-green-700",
-  completed: "bg-blue-100 text-blue-700",
-  cancelled: "bg-red-100 text-red-700",
+const ACTIVITY_STATUS_COLOR_MAP: Record<string, string> = {
+  draft: "bg-apple-muted text-apple-secondary",
+  published: "bg-apple-success/10 text-apple-success",
+  completed: "bg-apple-primary/10 text-apple-primary",
+  cancelled: "bg-apple-error/10 text-apple-error",
 };
 
 const STATUS_FILTER_OPTIONS = [
@@ -154,32 +163,6 @@ function formatActivityDate(iso: string): string {
   });
 }
 
-/* ─── Spinner ─── */
-
-function Spinner() {
-  return (
-    <svg
-      className="animate-spin h-4 w-4"
-      viewBox="0 0 24 24"
-      fill="none"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
-    </svg>
-  );
-}
-
 /* ─── ActivityList Component ─── */
 
 function ActivityList() {
@@ -203,9 +186,6 @@ function ActivityList() {
 
   // ── Staff list for instructor dropdown ──
   const [staffList, setStaffList] = useState<StaffRecord[]>([]);
-
-  // ── Debounced search ──
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const fetchActivities = useCallback(async () => {
     setListLoading(true);
@@ -259,15 +239,6 @@ function ActivityList() {
     })();
   }, []);
 
-  function handleSearchChange(value: string) {
-    setSearch(value);
-    setPage(1);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      // fetchActivities will fire via the useEffect deps
-    }, 300);
-  }
-
   // ── Modal handlers ──
 
   function openCreateModal() {
@@ -308,8 +279,7 @@ function ActivityList() {
     setFormError("");
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleSubmit() {
     setFormError("");
     setFormSubmitting(true);
 
@@ -414,8 +384,6 @@ function ActivityList() {
 
   // ── Status transition ──
   async function handleStatusTransition(activity: ActivityRecord, newStatus: string) {
-    // Status transitions are handled via PUT with status field (if supported)
-    // For draft → published, published → completed/cancelled
     try {
       const res = await fetch(`/api/v1/activities/${activity.id}`, {
         method: "PUT",
@@ -432,431 +400,333 @@ function ActivityList() {
     }
   }
 
-  // ── Derived ──
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // ── DataTable columns ──
+  const columns: Column<ActivityRecord>[] = [
+    {
+      key: "name",
+      header: "活动名称",
+      className: "max-w-[200px]",
+      render: (row) => (
+        <span className="font-medium text-foreground truncate block">
+          {row.name}
+        </span>
+      ),
+    },
+    {
+      key: "type",
+      header: "类型",
+      render: (row) => (
+        <span className="text-secondary">
+          {row.type === "custom"
+            ? row.customType || "自定义"
+            : ACTIVITY_TYPE_LABELS[row.type] || row.type}
+        </span>
+      ),
+    },
+    {
+      key: "activityDate",
+      header: "日期",
+      render: (row) => (
+        <span className="text-secondary">{formatActivityDate(row.activityDate)}</span>
+      ),
+    },
+    {
+      key: "time",
+      header: "时间",
+      render: (row) => (
+        <span className="text-secondary">
+          {row.startTime}-{row.endTime}
+        </span>
+      ),
+    },
+    {
+      key: "capacity",
+      header: "容量",
+      render: (row) => (
+        <span className="text-secondary">
+          {row.currentCapacity}/{row.maxCapacity}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "状态",
+      render: (row) => (
+        <StatusBadge
+          status={row.status}
+          colorMap={ACTIVITY_STATUS_COLOR_MAP}
+          labelMap={ACTIVITY_STATUS_LABELS}
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "操作",
+      className: "text-right",
+      render: (row) => (
+        <div className="flex items-center justify-end gap-2">
+          {(row.status === "draft" || row.status === "published") && (
+            <button
+              type="button"
+              onClick={() => openEditModal(row)}
+              className="text-sm text-apple-primary hover:text-apple-primary/80 font-medium transition-colors"
+            >
+              编辑
+            </button>
+          )}
+          {row.status === "draft" && (
+            <button
+              type="button"
+              onClick={() => handleStatusTransition(row, "published")}
+              className="text-sm text-apple-success hover:text-apple-success/80 font-medium transition-colors"
+            >
+              发布
+            </button>
+          )}
+          {row.status === "published" && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleStatusTransition(row, "completed")}
+                className="text-sm text-apple-primary hover:text-apple-primary/80 font-medium transition-colors"
+              >
+                完成
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStatusTransition(row, "cancelled")}
+                className="text-sm text-apple-error hover:text-apple-error/80 font-medium transition-colors"
+              >
+                取消
+              </button>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  // ── Filter node ──
+  const filterNode = (
+    <div className="flex items-center gap-2">
+      <select
+        value={statusFilter}
+        onChange={(e) => {
+          setStatusFilter(e.target.value);
+          setPage(1);
+        }}
+        className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-apple-primary focus:ring-1 focus:ring-apple-primary transition-colors"
+      >
+        {STATUS_FILTER_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      <select
+        value={typeFilter}
+        onChange={(e) => {
+          setTypeFilter(e.target.value);
+          setPage(1);
+        }}
+        className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-apple-primary focus:ring-1 focus:ring-apple-primary transition-colors"
+      >
+        {TYPE_FILTER_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+
+  // ── Actions node ──
+  const actionsNode = (
+    <Button onClick={openCreateModal} size="sm">
+      <Plus className="h-4 w-4" />
+      添加活动
+    </Button>
+  );
 
   return (
-    <div className="space-y-4">
-      {/* ── Header + filters ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            {STATUS_FILTER_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <select
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            {TYPE_FILTER_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          添加活动
-        </button>
-      </div>
-
-      {/* ── Search bar ── */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <svg
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="搜索活动名称"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-          />
-        </div>
-      </div>
-
-      {/* ── Error banner ── */}
-      {listError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {listError}
-          <button type="button" onClick={fetchActivities} className="ml-2 underline hover:no-underline">
-            重试
-          </button>
-        </div>
-      )}
-
-      {/* ── Activities table ── */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                活动名称
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                类型
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                日期
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                时间
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                容量
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                状态
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                操作
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {listLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={`skel-${i}`}>
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div
-                        className="h-4 bg-gray-100 rounded animate-pulse"
-                        style={{ width: `${60 + Math.random() * 40}%` }}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : activities.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">
-                  暂无活动数据
-                </td>
-              </tr>
-            ) : (
-              activities.map((activity) => (
-                <tr key={activity.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 max-w-[200px] truncate">
-                    {activity.name}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                    {activity.type === "custom"
-                      ? activity.customType || "自定义"
-                      : ACTIVITY_TYPE_LABELS[activity.type] || activity.type}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                    {formatActivityDate(activity.activityDate)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                    {activity.startTime}-{activity.endTime}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                    {activity.currentCapacity}/{activity.maxCapacity}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ACTIVITY_STATUS_BADGE_CLASSES[activity.status] || "bg-gray-100 text-gray-700"}`}>
-                      {ACTIVITY_STATUS_LABELS[activity.status] || activity.status}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right space-x-2">
-                    {(activity.status === "draft" || activity.status === "published") && (
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(activity)}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                      >
-                        编辑
-                      </button>
-                    )}
-                    {activity.status === "draft" && (
-                      <button
-                        type="button"
-                        onClick={() => handleStatusTransition(activity, "published")}
-                        className="text-sm text-green-600 hover:text-green-800 font-medium transition-colors"
-                      >
-                        发布
-                      </button>
-                    )}
-                    {activity.status === "published" && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusTransition(activity, "completed")}
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                        >
-                          完成
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusTransition(activity, "cancelled")}
-                          className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
-                        >
-                          取消
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* ── Pagination ── */}
-        {!listLoading && total > 0 && (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-sm text-gray-500">
-              共 {total} 条，第 {page} / {totalPages} 页
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                下一页
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+    <>
+      <DataTable<ActivityRecord>
+        columns={columns}
+        data={activities}
+        loading={listLoading}
+        error={listError || undefined}
+        total={total}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        onSearch={(value) => { setSearch(value); setPage(1); }}
+        searchPlaceholder="搜索活动名称"
+        onRetry={fetchActivities}
+        emptyMessage="暂无活动数据"
+        filter={filterNode}
+        actions={actionsNode}
+      />
 
       {/* ── Create / Edit Modal ── */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={closeModal}
-          />
-          {/* Dialog */}
-          <div className="relative z-10 w-full max-w-lg rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-100 shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {modalMode === "create" ? "添加活动" : "编辑活动"}
-              </h3>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
-              {formError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                  {formError}
-                </div>
-              )}
-
-              {/* Name */}
-              <div>
-                <label htmlFor="activity-name" className="block text-sm font-medium text-gray-700 mb-1">
-                  活动名称 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="activity-name"
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => updateForm("name", e.target.value)}
-                  maxLength={100}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  placeholder="请输入活动名称"
-                />
-              </div>
-
-              {/* Type */}
-              <div>
-                <label htmlFor="activity-type" className="block text-sm font-medium text-gray-700 mb-1">
-                  活动类型 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="activity-type"
-                  value={form.type}
-                  onChange={(e) => updateForm("type", e.target.value)}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                >
-                  {ACTIVITY_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Custom type (only when type=custom) */}
-              {form.type === "custom" && (
-                <div>
-                  <label htmlFor="activity-custom-type" className="block text-sm font-medium text-gray-700 mb-1">
-                    自定义类型名称 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="activity-custom-type"
-                    type="text"
-                    value={form.customType}
-                    onChange={(e) => updateForm("customType", e.target.value)}
-                    maxLength={50}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                    placeholder="例如：舞蹈课"
-                  />
-                </div>
-              )}
-
-              {/* Description */}
-              <div>
-                <label htmlFor="activity-description" className="block text-sm font-medium text-gray-700 mb-1">
-                  活动描述
-                </label>
-                <textarea
-                  id="activity-description"
-                  value={form.description}
-                  onChange={(e) => updateForm("description", e.target.value)}
-                  maxLength={500}
-                  rows={3}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
-                  placeholder="请输入活动描述（选填）"
-                />
-              </div>
-
-              {/* Date + Time row */}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label htmlFor="activity-date" className="block text-sm font-medium text-gray-700 mb-1">
-                    活动日期 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="activity-date"
-                    type="date"
-                    value={form.activityDate}
-                    onChange={(e) => updateForm("activityDate", e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="activity-start" className="block text-sm font-medium text-gray-700 mb-1">
-                    开始时间 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="activity-start"
-                    type="time"
-                    value={form.startTime}
-                    onChange={(e) => updateForm("startTime", e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="activity-end" className="block text-sm font-medium text-gray-700 mb-1">
-                    结束时间 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="activity-end"
-                    type="time"
-                    value={form.endTime}
-                    onChange={(e) => updateForm("endTime", e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* Capacity + Instructor row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="activity-capacity" className="block text-sm font-medium text-gray-700 mb-1">
-                    最大人数 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="activity-capacity"
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={form.maxCapacity}
-                    onChange={(e) => updateForm("maxCapacity", e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                    placeholder="1-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="activity-instructor" className="block text-sm font-medium text-gray-700 mb-1">
-                    授课员工
-                  </label>
-                  <select
-                    id="activity-instructor"
-                    value={form.instructorId}
-                    onChange={(e) => updateForm("instructorId", e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  >
-                    <option value="">不指定</option>
-                    {staffList.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Live stream URL (shown for live_stream type, but always available) */}
-              <div>
-                <label htmlFor="activity-livestream" className="block text-sm font-medium text-gray-700 mb-1">
-                  直播链接
-                </label>
-                <input
-                  id="activity-livestream"
-                  type="url"
-                  value={form.liveStreamUrl}
-                  onChange={(e) => updateForm("liveStreamUrl", e.target.value)}
-                  maxLength={500}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  placeholder="https://...（选填）"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  disabled={formSubmitting}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {formSubmitting && <Spinner />}
-                  {modalMode === "create" ? "创建" : "保存"}
-                </button>
-              </div>
-            </form>
+      <FormModal
+        open={showModal}
+        onOpenChange={(open) => { if (!open) closeModal(); }}
+        title={modalMode === "create" ? "添加活动" : "编辑活动"}
+        onSubmit={handleSubmit}
+        submitting={formSubmitting}
+        error={formError || undefined}
+        submitLabel={modalMode === "create" ? "创建" : "保存"}
+      >
+        <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
+          {/* Name */}
+          <div>
+            <label htmlFor="activity-name" className="block text-sm font-medium text-foreground mb-1">
+              活动名称 <span className="text-apple-error">*</span>
+            </label>
+            <Input
+              id="activity-name"
+              type="text"
+              value={form.name}
+              onChange={(e) => updateForm("name", e.target.value)}
+              maxLength={100}
+              placeholder="请输入活动名称"
+            />
           </div>
-        </div>
-      )}
-    </div>
+
+          {/* Type */}
+          <div>
+            <label htmlFor="activity-type" className="block text-sm font-medium text-foreground mb-1">
+              活动类型 <span className="text-apple-error">*</span>
+            </label>
+            <select
+              id="activity-type"
+              value={form.type}
+              onChange={(e) => updateForm("type", e.target.value)}
+              className="block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-apple-primary focus:ring-1 focus:ring-apple-primary transition-colors"
+            >
+              {ACTIVITY_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Custom type (only when type=custom) */}
+          {form.type === "custom" && (
+            <div>
+              <label htmlFor="activity-custom-type" className="block text-sm font-medium text-foreground mb-1">
+                自定义类型名称 <span className="text-apple-error">*</span>
+              </label>
+              <Input
+                id="activity-custom-type"
+                type="text"
+                value={form.customType}
+                onChange={(e) => updateForm("customType", e.target.value)}
+                maxLength={50}
+                placeholder="例如：舞蹈课"
+              />
+            </div>
+          )}
+
+          {/* Description */}
+          <div>
+            <label htmlFor="activity-description" className="block text-sm font-medium text-foreground mb-1">
+              活动描述
+            </label>
+            <textarea
+              id="activity-description"
+              value={form.description}
+              onChange={(e) => updateForm("description", e.target.value)}
+              maxLength={500}
+              rows={3}
+              className="block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-apple-primary focus:ring-1 focus:ring-apple-primary transition-colors resize-none"
+              placeholder="请输入活动描述（选填）"
+            />
+          </div>
+
+          {/* Date + Time row */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label htmlFor="activity-date" className="block text-sm font-medium text-foreground mb-1">
+                活动日期 <span className="text-apple-error">*</span>
+              </label>
+              <Input
+                id="activity-date"
+                type="date"
+                value={form.activityDate}
+                onChange={(e) => updateForm("activityDate", e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="activity-start" className="block text-sm font-medium text-foreground mb-1">
+                开始时间 <span className="text-apple-error">*</span>
+              </label>
+              <Input
+                id="activity-start"
+                type="time"
+                value={form.startTime}
+                onChange={(e) => updateForm("startTime", e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="activity-end" className="block text-sm font-medium text-foreground mb-1">
+                结束时间 <span className="text-apple-error">*</span>
+              </label>
+              <Input
+                id="activity-end"
+                type="time"
+                value={form.endTime}
+                onChange={(e) => updateForm("endTime", e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Capacity + Instructor row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="activity-capacity" className="block text-sm font-medium text-foreground mb-1">
+                最大人数 <span className="text-apple-error">*</span>
+              </label>
+              <Input
+                id="activity-capacity"
+                type="number"
+                min={1}
+                max={500}
+                value={form.maxCapacity}
+                onChange={(e) => updateForm("maxCapacity", e.target.value)}
+                placeholder="1-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="activity-instructor" className="block text-sm font-medium text-foreground mb-1">
+                授课员工
+              </label>
+              <select
+                id="activity-instructor"
+                value={form.instructorId}
+                onChange={(e) => updateForm("instructorId", e.target.value)}
+                className="block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-apple-primary focus:ring-1 focus:ring-apple-primary transition-colors"
+              >
+                <option value="">不指定</option>
+                {staffList.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Live stream URL */}
+          <div>
+            <label htmlFor="activity-livestream" className="block text-sm font-medium text-foreground mb-1">
+              直播链接
+            </label>
+            <Input
+              id="activity-livestream"
+              type="url"
+              value={form.liveStreamUrl}
+              onChange={(e) => updateForm("liveStreamUrl", e.target.value)}
+              maxLength={500}
+              placeholder="https://...（选填）"
+            />
+          </div>
+        </form>
+      </FormModal>
+    </>
   );
 }
 
@@ -876,7 +746,6 @@ function WeeklyTimetable() {
     setLoading(true);
     setError("");
     try {
-      // Fetch activities for the week range — no limit to get all
       const params = new URLSearchParams({
         dateFrom: formatDate(weekStart),
         dateTo: formatDate(weekEnd),
@@ -949,17 +818,31 @@ function WeeklyTimetable() {
     setWeekStart(getMonday(new Date()));
   }
 
+  // Activity card color by status
+  function activityCardClasses(status: string): string {
+    switch (status) {
+      case "cancelled":
+        return "bg-muted border-border opacity-50";
+      case "completed":
+        return "bg-apple-primary/5 border-apple-primary/20";
+      case "published":
+        return "bg-apple-success/5 border-apple-success/20";
+      default:
+        return "bg-muted border-border";
+    }
+  }
+
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header + filter */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           按周查看活动课表安排
         </p>
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:border-apple-primary focus:ring-1 focus:ring-apple-primary transition-colors"
         >
           <option value="">全部类型</option>
           {ACTIVITY_TYPE_OPTIONS.map((opt) => (
@@ -969,65 +852,66 @@ function WeeklyTimetable() {
       </div>
 
       {/* Week navigation */}
-      <div className="flex items-center justify-center gap-4">
-        <button
-          type="button"
+      <div className="flex items-center justify-center gap-3">
+        <Button
+          variant="outline"
+          size="sm"
           onClick={goToPrevWeek}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
-          ← 上一周
-        </button>
-        <span className="text-sm font-medium text-gray-900 min-w-[220px] text-center">
+          <ChevronLeft className="h-4 w-4" />
+          上一周
+        </Button>
+        <span className="text-sm font-medium text-foreground min-w-[220px] text-center">
           {formatDate(weekStart)} ~ {formatDate(weekEnd)}
         </span>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           onClick={goToNextWeek}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
-          下一周 →
-        </button>
-        <button
-          type="button"
+          下一周
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={goToCurrentWeek}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
+          <CalendarDays className="h-4 w-4" />
           今天
-        </button>
+        </Button>
       </div>
 
       {/* Error banner */}
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
-          <button type="button" onClick={fetchActivities} className="ml-2 underline hover:no-underline">
-            重试
-          </button>
-        </div>
+        <ErrorBanner message={error} onRetry={fetchActivities} />
       )}
 
       {/* Timetable grid */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         {loading ? (
           <div className="p-12 space-y-3 animate-pulse">
-            <div className="h-6 bg-gray-100 rounded w-1/2" />
-            <div className="h-24 bg-gray-100 rounded" />
-            <div className="h-24 bg-gray-100 rounded" />
+            <div className="h-6 bg-muted rounded w-1/2" />
+            <div className="h-24 bg-muted rounded" />
+            <div className="h-24 bg-muted rounded" />
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-muted">
                 <tr>
                   {weekDays.map((day) => (
                     <th
                       key={day.date}
-                      className={`px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider ${
-                        day.isToday ? "text-blue-600 bg-blue-50" : "text-gray-500"
-                      }`}
+                      className={cn(
+                        "px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider",
+                        day.isToday
+                          ? "text-apple-primary bg-apple-primary/5"
+                          : "text-muted-foreground"
+                      )}
                     >
                       <div>{day.label}</div>
-                      <div className="text-[11px] font-normal text-gray-400 mt-0.5">
+                      <div className="text-[11px] font-normal text-muted-foreground mt-0.5">
                         {day.date.slice(5)}
                       </div>
                     </th>
@@ -1041,43 +925,39 @@ function WeeklyTimetable() {
                     return (
                       <td
                         key={day.date}
-                        className={`px-2 py-2 align-top min-w-[140px] max-w-[200px] ${
-                          day.isToday ? "bg-blue-50/50" : ""
-                        }`}
+                        className={cn(
+                          "px-2 py-2 align-top min-w-[140px] max-w-[200px]",
+                          day.isToday && "bg-apple-primary/5"
+                        )}
                       >
                         {dayActivities.length === 0 ? (
                           <div className="h-12 flex items-center justify-center">
-                            <span className="text-gray-300 text-xs">—</span>
+                            <span className="text-muted-foreground/40 text-xs">—</span>
                           </div>
                         ) : (
                           <div className="space-y-1.5">
                             {dayActivities.map((activity) => (
                               <div
                                 key={activity.id}
-                                className={`rounded-md px-2 py-1.5 text-xs border ${
-                                  activity.status === "cancelled"
-                                    ? "bg-gray-50 border-gray-200 opacity-50"
-                                    : activity.status === "completed"
-                                      ? "bg-blue-50 border-blue-200"
-                                      : activity.status === "published"
-                                        ? "bg-green-50 border-green-200"
-                                        : "bg-gray-50 border-gray-200"
-                                }`}
+                                className={cn(
+                                  "rounded-md px-2 py-1.5 text-xs border",
+                                  activityCardClasses(activity.status)
+                                )}
                                 title={`${activity.startTime}-${activity.endTime} | ${activity.currentCapacity}/${activity.maxCapacity}人`}
                               >
-                                <div className="font-medium text-gray-800 truncate">
+                                <div className="font-medium text-foreground truncate">
                                   {activity.name}
                                 </div>
-                                <div className="text-gray-500 mt-0.5">
+                                <div className="text-secondary mt-0.5">
                                   {activity.startTime}-{activity.endTime}
                                 </div>
-                                <div className="text-gray-400 mt-0.5">
+                                <div className="text-muted-foreground mt-0.5">
                                   {activity.type === "custom"
                                     ? activity.customType || "自定义"
                                     : ACTIVITY_TYPE_LABELS[activity.type]}
                                   {activity.instructor ? ` · ${activity.instructor.name}` : ""}
                                 </div>
-                                <div className="text-gray-400 mt-0.5">
+                                <div className="text-muted-foreground mt-0.5">
                                   {activity.currentCapacity}/{activity.maxCapacity}人
                                 </div>
                               </div>
@@ -1105,33 +985,31 @@ export default function ActivitiesPage() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
-          活动管理
-        </h2>
-      </div>
+      <PageHeader title="活动管理" />
 
-      {/* Tab navigation */}
-      <div className="flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+      {/* Tab navigation — Apple design token switcher */}
+      <div className="flex gap-1 rounded-xl bg-muted p-1 w-fit">
         <button
           type="button"
           onClick={() => setActiveTab("list")}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+          className={cn(
+            "rounded-lg px-4 py-2 text-sm font-medium transition-all",
             activeTab === "list"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
         >
           活动列表
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("timetable")}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+          className={cn(
+            "rounded-lg px-4 py-2 text-sm font-medium transition-all",
             activeTab === "timetable"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
         >
           周课表
         </button>

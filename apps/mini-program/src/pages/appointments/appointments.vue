@@ -531,7 +531,7 @@ function formatScheduledAt(dateStr: string): string {
 <style scoped>
 .appointments-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f5f7;
 }
 
 /* Tab bar */
@@ -573,13 +573,13 @@ function formatScheduledAt(dateStr: string): string {
 
 .tab-text {
   font-size: 30rpx;
-  color: #999;
+  color: #aeaeb2;
 }
 
 .tab-item--active .tab-text {
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
 }
 
 /* Tab content */
@@ -618,7 +618,7 @@ function formatScheduledAt(dateStr: string): string {
 .card-date {
   font-size: 28rpx;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
 }
 
 /* Status badges */
@@ -628,38 +628,38 @@ function formatScheduledAt(dateStr: string): string {
 }
 
 .status-badge--blue {
-  background-color: rgba(24, 144, 255, 0.1);
+  background-color: rgba(0, 113, 227, 0.1);
 }
 .status-badge--blue .status-text {
-  color: #1890ff;
+  color: #0071e3;
 }
 
 .status-badge--green {
-  background-color: rgba(7, 193, 96, 0.1);
+  background-color: rgba(52, 199, 89, 0.1);
 }
 .status-badge--green .status-text {
   color: #07c160;
 }
 
 .status-badge--orange {
-  background-color: rgba(255, 152, 0, 0.1);
+  background-color: rgba(255, 159, 10, 0.1);
 }
 .status-badge--orange .status-text {
-  color: #ff9800;
+  color: #FF9F0A;
 }
 
 .status-badge--gray {
-  background-color: rgba(153, 153, 153, 0.1);
+  background-color: rgba(174, 174, 178, 0.1);
 }
 .status-badge--gray .status-text {
-  color: #999;
+  color: #aeaeb2;
 }
 
 .status-badge--red {
-  background-color: rgba(229, 57, 53, 0.1);
+  background-color: rgba(255, 59, 48, 0.1);
 }
 .status-badge--red .status-text {
-  color: #e53935;
+  color: #FF3B30;
 }
 
 .status-text {
@@ -682,13 +682,13 @@ function formatScheduledAt(dateStr: string): string {
 
 .card-label {
   font-size: 26rpx;
-  color: #999;
+  color: #aeaeb2;
   width: 100rpx;
 }
 
 .card-value {
   font-size: 26rpx;
-  color: #333;
+  color: #1d1d1f;
 }
 
 /* Card footer */
@@ -698,18 +698,18 @@ function formatScheduledAt(dateStr: string): string {
   justify-content: flex-end;
   margin-top: 20rpx;
   padding-top: 20rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid #f5f5f7;
 }
 
 .cancel-btn {
   padding: 10rpx 32rpx;
-  border: 2rpx solid #e53935;
+  border: 2rpx solid #FF3B30;
   border-radius: 28rpx;
 }
 
 .cancel-btn-text {
   font-size: 24rpx;
-  color: #e53935;
+  color: #FF3B30;
 }
 
 /* Empty state */
@@ -727,13 +727,13 @@ function formatScheduledAt(dateStr: string): string {
 
 .empty-text {
   font-size: 32rpx;
-  color: #666;
+  color: #86868b;
   margin-bottom: 16rpx;
 }
 
 .empty-desc {
   font-size: 26rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 
 .empty-hint {
@@ -742,7 +742,7 @@ function formatScheduledAt(dateStr: string): string {
 
 .empty-hint-text {
   font-size: 26rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 
 /* Form */
@@ -762,7 +762,7 @@ function formatScheduledAt(dateStr: string): string {
 .form-label {
   font-size: 28rpx;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
   margin-bottom: 16rpx;
   display: block;
 }
@@ -774,17 +774,17 @@ function formatScheduledAt(dateStr: string): string {
   justify-content: space-between;
   align-items: center;
   padding: 16rpx 20rpx;
-  background-color: #f8f8f8;
+  background-color: #f5f5f7;
   border-radius: 12rpx;
 }
 
 .picker-arrow {
   font-size: 24rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 
 .placeholder-text {
-  color: #ccc;
+  color: #d2d2d7;
   font-size: 28rpx;
 }
 
@@ -794,7 +794,7 @@ function formatScheduledAt(dateStr: string): string {
   flex-direction: row;
   align-items: center;
   padding: 16rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
+  border-bottom: 1rpx solid #f5f5f7;
 }
 
 .radio-item:last-child {
@@ -803,20 +803,20 @@ function formatScheduledAt(dateStr: string): string {
 
 .radio-label {
   font-size: 28rpx;
-  color: #333;
+  color: #1d1d1f;
   margin-left: 12rpx;
 }
 
 .machine-booked-tag {
   margin-left: 16rpx;
   padding: 4rpx 16rpx;
-  background-color: rgba(229, 57, 53, 0.1);
+  background-color: rgba(255, 59, 48, 0.1);
   border-radius: 8rpx;
 }
 
 .machine-booked-text {
   font-size: 22rpx;
-  color: #e53935;
+  color: #FF3B30;
 }
 
 /* Availability section */
@@ -833,7 +833,7 @@ function formatScheduledAt(dateStr: string): string {
   justify-content: space-between;
   align-items: center;
   padding: 12rpx 0;
-  border-bottom: 1rpx solid #f5f5f5;
+  border-bottom: 1rpx solid #f5f5f7;
 }
 
 .avail-room-card:last-child {
@@ -842,12 +842,12 @@ function formatScheduledAt(dateStr: string): string {
 
 .avail-room-name {
   font-size: 26rpx;
-  color: #333;
+  color: #1d1d1f;
 }
 
 .avail-room-count {
   font-size: 24rpx;
-  color: #999;
+  color: #aeaeb2;
 }
 
 /* Submit section */

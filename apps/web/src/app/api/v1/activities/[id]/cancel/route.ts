@@ -68,7 +68,7 @@ export async function PATCH(
         const idempotentTitle = `[${id.slice(0, 8)}] 活动取消通知`;
         const content = `您报名的"${existing.name}"已被取消，给您带来的不便敬请谅解。`;
 
-        const payloads = cancelledRegistrations.map((reg) => ({
+        const payloads = cancelledRegistrations.map((reg: { residentId: string }) => ({
           recipientType: "resident" as const,
           recipientId: reg.residentId,
           type: "activity_cancelled",

@@ -68,7 +68,7 @@ async function scanNoShowWarnings(): Promise<ReminderCandidate[]> {
     },
   });
 
-  return appointments.map((a) => ({
+  return appointments.map((a: { id: string; residentId: string; scheduledAt: Date; storeId: string }) => ({
     appointmentId: a.id,
     residentId: a.residentId,
     scheduledAt: a.scheduledAt,

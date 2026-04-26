@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
           existing.map((s: { staffId: string }) => s.staffId),
         );
         const available = staffStores.filter(
-          (ss) => !assignedStaffIds.has(ss.staffId),
+          (ss: { staffId: string }) => !assignedStaffIds.has(ss.staffId),
         );
 
         if (available.length < shift.requiredStaff) {

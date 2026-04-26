@@ -125,7 +125,7 @@ export async function PUT(
 
     if (newStatus === "approved") {
       // Transaction: update leave + cancel overlapping schedules
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // 1. Update leave status
         await tx.leave.update({
           where: { id },

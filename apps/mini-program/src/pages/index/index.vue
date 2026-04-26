@@ -114,7 +114,7 @@ function goToActivities() {
 .index-page {
   padding: 40rpx;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f5f7;
 }
 
 .greeting-section {
@@ -125,7 +125,7 @@ function goToActivities() {
 .greeting-text {
   display: block;
   font-size: 28rpx;
-  color: #666;
+  color: #86868b;
   margin-bottom: 10rpx;
 }
 
@@ -133,14 +133,14 @@ function goToActivities() {
   display: block;
   font-size: 40rpx;
   font-weight: 700;
-  color: #333;
+  color: #1d1d1f;
   margin-bottom: 20rpx;
 }
 
 .store-switcher {
   display: inline-flex;
   align-items: center;
-  background-color: #e8f4e8;
+  background-color: #f5f5f7;
   border-radius: 30rpx;
   padding: 10rpx 24rpx;
   gap: 12rpx;
@@ -148,12 +148,12 @@ function goToActivities() {
 
 .store-switcher-label {
   font-size: 24rpx;
-  color: #888;
+  color: #86868b;
 }
 
 .store-switcher-name {
   font-size: 26rpx;
-  color: #2d8c2d;
+  color: #34C759;
   font-weight: 600;
   max-width: 300rpx;
   overflow: hidden;
@@ -163,7 +163,7 @@ function goToActivities() {
 
 .store-switcher-arrow {
   font-size: 20rpx;
-  color: #2d8c2d;
+  color: #34C759;
 }
 
 .feature-grid {
@@ -190,12 +190,12 @@ function goToActivities() {
 .feature-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
   margin-bottom: 10rpx;
 }
 
 .feature-desc {
   font-size: 24rpx;
-  color: #999;
+  color: #aeaeb2;
 }
 </style>

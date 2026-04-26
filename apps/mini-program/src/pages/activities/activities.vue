@@ -586,7 +586,7 @@ function regStatusBadgeClass(status: string): string {
 <style scoped>
 .activities-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f5f7;
 }
 
 /* Tab bar */
@@ -624,13 +624,13 @@ function regStatusBadgeClass(status: string): string {
 
 .tab-text {
   font-size: 30rpx;
-  color: #999;
+  color: #aeaeb2;
 }
 
 .tab-item--active .tab-text {
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
 }
 
 /* Tab content */
@@ -662,7 +662,7 @@ function regStatusBadgeClass(status: string): string {
 .date-header {
   font-size: 28rpx;
   font-weight: 600;
-  color: #666;
+  color: #86868b;
   padding: 8rpx 0;
 }
 
@@ -685,7 +685,7 @@ function regStatusBadgeClass(status: string): string {
 .card-name {
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
   flex: 1;
   margin-right: 16rpx;
 }
@@ -713,38 +713,38 @@ function regStatusBadgeClass(status: string): string {
 }
 
 .type-badge--blue {
-  background-color: rgba(24, 144, 255, 0.1);
+  background-color: rgba(0, 113, 227, 0.1);
 }
 .type-badge--blue .type-text {
-  color: #1890ff;
+  color: #0071e3;
 }
 
 .type-badge--green {
-  background-color: rgba(7, 193, 96, 0.1);
+  background-color: rgba(52, 199, 89, 0.1);
 }
 .type-badge--green .type-text {
   color: #07c160;
 }
 
 .type-badge--orange {
-  background-color: rgba(255, 152, 0, 0.1);
+  background-color: rgba(255, 159, 10, 0.1);
 }
 .type-badge--orange .type-text {
-  color: #ff9800;
+  color: #FF9F0A;
 }
 
 .type-badge--purple {
-  background-color: rgba(156, 39, 176, 0.1);
+  background-color: rgba(175, 82, 222, 0.1);
 }
 .type-badge--purple .type-text {
-  color: #9c27b0;
+  color: #AF52DE;
 }
 
 .type-badge--gray {
-  background-color: rgba(153, 153, 153, 0.1);
+  background-color: rgba(174, 174, 178, 0.1);
 }
 .type-badge--gray .type-text {
-  color: #999;
+  color: #aeaeb2;
 }
 
 .type-text {
@@ -759,31 +759,31 @@ function regStatusBadgeClass(status: string): string {
 }
 
 .status-badge--blue {
-  background-color: rgba(24, 144, 255, 0.1);
+  background-color: rgba(0, 113, 227, 0.1);
 }
 .status-badge--blue .status-text {
-  color: #1890ff;
+  color: #0071e3;
 }
 
 .status-badge--green {
-  background-color: rgba(7, 193, 96, 0.1);
+  background-color: rgba(52, 199, 89, 0.1);
 }
 .status-badge--green .status-text {
   color: #07c160;
 }
 
 .status-badge--red {
-  background-color: rgba(229, 57, 53, 0.1);
+  background-color: rgba(255, 59, 48, 0.1);
 }
 .status-badge--red .status-text {
-  color: #e53935;
+  color: #FF3B30;
 }
 
 .status-badge--gray {
-  background-color: rgba(153, 153, 153, 0.1);
+  background-color: rgba(174, 174, 178, 0.1);
 }
 .status-badge--gray .status-text {
-  color: #999;
+  color: #aeaeb2;
 }
 
 .status-text {
@@ -806,13 +806,13 @@ function regStatusBadgeClass(status: string): string {
 
 .card-label {
   font-size: 26rpx;
-  color: #999;
+  color: #aeaeb2;
   width: 100rpx;
 }
 
 .card-value {
   font-size: 26rpx;
-  color: #333;
+  color: #1d1d1f;
 }
 
 /* Empty state */
@@ -830,13 +830,13 @@ function regStatusBadgeClass(status: string): string {
 
 .empty-text {
   font-size: 32rpx;
-  color: #666;
+  color: #86868b;
   margin-bottom: 16rpx;
 }
 
 .empty-desc {
   font-size: 26rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 
 /* Detail popup */
@@ -858,7 +858,7 @@ function regStatusBadgeClass(status: string): string {
 .detail-title {
   font-size: 36rpx;
   font-weight: 700;
-  color: #333;
+  color: #1d1d1f;
   flex: 1;
 }
 
@@ -877,14 +877,14 @@ function regStatusBadgeClass(status: string): string {
 
 .detail-label {
   font-size: 26rpx;
-  color: #999;
+  color: #aeaeb2;
   width: 100rpx;
   flex-shrink: 0;
 }
 
 .detail-value {
   font-size: 26rpx;
-  color: #333;
+  color: #1d1d1f;
   flex: 1;
 }
 
@@ -920,23 +920,23 @@ function regStatusBadgeClass(status: string): string {
 
 .action-btn--cancel {
   background-color: #ffffff;
-  border: 2rpx solid #e53935;
+  border: 2rpx solid #FF3B30;
 }
 .action-btn--cancel .action-btn-text {
-  color: #e53935;
+  color: #FF3B30;
 }
 
 .action-btn--live {
-  background-color: #9c27b0;
+  background-color: #AF52DE;
 }
 .action-btn--live .action-btn-text {
   color: #ffffff;
 }
 
 .action-btn--disabled {
-  background-color: #f0f0f0;
+  background-color: #f5f5f7;
 }
 .action-btn--disabled .action-btn-text {
-  color: #ccc;
+  color: #d2d2d7;
 }
 </style>

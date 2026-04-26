@@ -51,7 +51,7 @@
     }
   ],
   "tabBar": {
-    "color": "#999999",
+    "color": "#aeaeb2",
     "selectedColor": "#07C160",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
@@ -74,6 +74,6 @@
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "社区健康管理",
     "navigationBarBackgroundColor": "#ffffff",
-    "backgroundColor": "#f5f5f5"
+    "backgroundColor": "#f5f5f7"
   }
 }

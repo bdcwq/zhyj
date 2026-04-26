@@ -1,8 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { STAFF_ROLES } from "@zhyj/shared";
+import { cn } from "@/lib/utils";
+import { DataTable, type Column } from "@/components/data-table";
+import { FormModal } from "@/components/form-modal";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /* ─── Types ─── */
 
@@ -64,7 +79,7 @@ interface StoreOption {
   name: string;
 }
 
-/* ─── Constants ─── */
+/* ─── Constants (Apple design tokens) ─── */
 
 const SOURCE_LABELS: Record<string, string> = {
   "walk-in": "现场登记",
@@ -79,12 +94,24 @@ const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
   "no-show": "爽约",
 };
 
-const APPOINTMENT_STATUS_CLASSES: Record<string, string> = {
-  booked: "bg-blue-50 text-blue-700 ring-blue-600/20",
-  verified: "bg-green-50 text-green-700 ring-green-600/20",
-  cancelled: "bg-gray-50 text-gray-500 ring-gray-400/20",
-  "no-show": "bg-red-50 text-red-700 ring-red-600/20",
+const APPOINTMENT_STATUS_COLORS: Record<string, string> = {
+  booked: "bg-primary/10 text-primary ring-primary/20",
+  verified: "bg-apple-success/10 text-apple-success ring-apple-success/20",
+  cancelled: "bg-muted text-muted-foreground ring-muted-foreground/20",
+  "no-show": "bg-apple-error/10 text-apple-error ring-apple-error/20",
 };
+
+const SCORE_COLOR_MAP: Record<string, string> = {
+  high: "text-apple-success",
+  medium: "text-apple-warning",
+  low: "text-apple-error",
+};
+
+function getScoreColorClass(score: number): string {
+  if (score >= 80) return SCORE_COLOR_MAP.high;
+  if (score >= 60) return SCORE_COLOR_MAP.medium;
+  return SCORE_COLOR_MAP.low;
+}
 
 const PAGE_SIZE = 20;
 
@@ -130,9 +157,6 @@ export default function ResidentsManagementPage() {
   } | null>(null);
   const [unbindSubmitting, setUnbindSubmitting] = useState(false);
 
-  // ── Debounced search ──
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const canManage = role === STAFF_ROLES.ADMIN || role === STAFF_ROLES.STORE_MANAGER;
 
   // ── Fetch residents list ──
@@ -167,14 +191,18 @@ export default function ResidentsManagementPage() {
     if (!authLoading) fetchResidents();
   }, [fetchResidents, authLoading]);
 
-  // Debounce search input
+  // ── Search handler ──
   function handleSearchChange(value: string) {
     setSearch(value);
     setPage(1);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      // fetchResidents will fire via the useEffect deps (search changed)
-    }, 300);
+  }
+
+  // ── Export handler ──
+  function handleExport() {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    const qs = params.toString();
+    window.open(`/api/v1/export/residents${qs ? `?${qs}` : ""}`, "_blank");
   }
 
   // ── Detail panel ──
@@ -189,7 +217,6 @@ export default function ResidentsManagementPage() {
     setTabError("");
 
     if (canManage) {
-      // Fetch full detail (admin/store_manager only)
       setDetailLoading(true);
       try {
         const res = await fetch(`/api/v1/residents/${resident.id}`, { credentials: "include" });
@@ -206,7 +233,6 @@ export default function ResidentsManagementPage() {
       }
     }
 
-    // Load monitoring tab by default
     await fetchMonitoringTab(resident.id);
   }
 
@@ -306,7 +332,6 @@ export default function ResidentsManagementPage() {
       const json = await res.json();
       if (json.success) {
         setShowBindModal(false);
-        // Refresh detail and list
         if (selectedResident) {
           const detailRes = await fetch(`/api/v1/residents/${selectedResident.id}`, { credentials: "include" });
           const detailJson = await detailRes.json();
@@ -348,7 +373,6 @@ export default function ResidentsManagementPage() {
       const json = await res.json();
       if (json.success) {
         setUnbindTarget(null);
-        // Refresh detail and list
         if (selectedResident) {
           const detailRes = await fetch(`/api/v1/residents/${selectedResident.id}`, { credentials: "include" });
           const detailJson = await detailRes.json();
@@ -363,16 +387,77 @@ export default function ResidentsManagementPage() {
     }
   }
 
-  // ── Derived ──
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // ── Column definitions (MEM074: inside component body) ──
+  const columns: Column<ResidentRecord>[] = [
+    {
+      key: "name",
+      header: "姓名",
+      render: (r) => (
+        <span className="font-medium text-foreground">{r.name}</span>
+      ),
+    },
+    { key: "phone", header: "手机号" },
+    {
+      key: "registrationSource",
+      header: "注册来源",
+      render: (r) => (
+        <span className="text-muted-foreground">
+          {SOURCE_LABELS[r.registrationSource] || r.registrationSource}
+        </span>
+      ),
+    },
+    {
+      key: "stores",
+      header: "绑定门店",
+      render: (r) => (
+        <span className="text-muted-foreground max-w-[200px] truncate block">
+          {r.residentStores.length > 0
+            ? r.residentStores.map((s) => s.store.name).join("、")
+            : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "操作",
+      className: "text-right",
+      render: (r) => (
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-primary hover:text-primary/80"
+          onClick={(e) => {
+            e.stopPropagation();
+            openDetail(r);
+          }}
+        >
+          查看
+        </Button>
+      ),
+    },
+  ];
 
-  // ── Loading / auth guard ──
+  // ── Export button for DataTable actions slot ──
+  const exportButton = (
+    <Button variant="outline" size="sm" onClick={handleExport}>
+      <Download className="h-4 w-4" />
+      导出
+    </Button>
+  );
+
+  // ── Resolved store list for detail panel ──
+  const detailStores = residentDetail?.stores ||
+    selectedResident?.residentStores.map((s) => ({ id: s.store.id, name: s.store.name })) || [];
+
+  // ── Loading skeleton ──
   if (authLoading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-gray-200 rounded" />
-        <div className="h-10 w-full bg-gray-200 rounded" />
-        <div className="h-64 w-full bg-gray-200 rounded" />
+      <div className="space-y-6">
+        <div className="space-y-2 animate-pulse">
+          <div className="h-7 w-48 bg-muted rounded" />
+        </div>
+        <div className="h-10 w-full bg-muted rounded-lg" />
+        <div className="h-64 w-full bg-muted rounded-xl" />
       </div>
     );
   }
@@ -380,161 +465,52 @@ export default function ResidentsManagementPage() {
   return (
     <div className="space-y-6">
       {/* ── Page header ── */}
-      <h2 className="text-xl font-semibold text-gray-900 tracking-tight">居民管理</h2>
+      <PageHeader title="居民管理" />
 
-      {/* ── Search bar ── */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <svg
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="搜索姓名或手机号"
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            const params = new URLSearchParams();
-            if (search) params.set("search", search);
-            const qs = params.toString();
-            window.open(`/api/v1/export/residents${qs ? `?${qs}` : ""}`, "_blank");
-          }}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          导出
-        </button>
-      </div>
-
-      {/* ── Error banner ── */}
-      {listError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {listError}
-          <button type="button" onClick={fetchResidents} className="ml-2 underline hover:no-underline">
-            重试
-          </button>
-        </div>
-      )}
-
-      {/* ── Residents table ── */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">姓名</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">手机号</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">注册来源</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">绑定门店</th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">操作</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {listLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={`skel-${i}`}>
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-gray-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : residents.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-400">
-                  暂无居民数据
-                </td>
-              </tr>
-            ) : (
-              residents.map((r) => (
-                <tr
-                  key={r.id}
-                  className="hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => openDetail(r)}
-                >
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{r.name}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{r.phone}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                    {SOURCE_LABELS[r.registrationSource] || r.registrationSource}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate">
-                    {r.residentStores.length > 0
-                      ? r.residentStores.map((s) => s.store.name).join("、")
-                      : "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDetail(r);
-                      }}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                    >
-                      查看
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* ── Pagination ── */}
-        {!listLoading && total > 0 && (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-sm text-gray-500">
-              共 {total} 条，第 {page} / {totalPages} 页
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                下一页
-              </button>
-            </div>
-          </div>
-        )}
+      {/* ── Data table with search and export ── */}
+      <div
+        className="bg-card rounded-xl border border-border shadow-sm p-6"
+        onClick={(e) => {
+          // Allow DataTable row clicks to propagate for openDetail
+          const target = e.target as HTMLElement;
+          if (target.closest("button") || target.closest("a") || target.closest("select") || target.closest("input")) return;
+          // Only handle clicks on table rows — not search, pagination, or actions
+        }}
+      >
+        <DataTable
+          columns={columns}
+          data={residents}
+          loading={listLoading}
+          error={listError}
+          total={total}
+          page={page}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          onSearch={handleSearchChange}
+          searchPlaceholder="搜索姓名或手机号"
+          onRetry={fetchResidents}
+          emptyMessage="暂无居民数据"
+          actions={exportButton}
+        />
       </div>
 
       {/* ── Detail slide-over panel ── */}
       {selectedResident && (
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={closeDetail} />
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={closeDetail}
+          />
           {/* Panel */}
-          <div className="relative z-10 w-full max-w-lg bg-white shadow-2xl flex flex-col">
+          <div className="relative z-10 w-full max-w-lg bg-card shadow-2xl flex flex-col">
             {/* Panel header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">居民详情</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">居民详情</h3>
               <button
                 type="button"
                 onClick={closeDetail}
-                className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -546,55 +522,69 @@ export default function ResidentsManagementPage() {
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
               {/* Basic info */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">基本信息</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  基本信息
+                </h4>
                 {detailLoading ? (
                   <div className="space-y-2 animate-pulse">
-                    <div className="h-4 bg-gray-100 rounded w-3/4" />
-                    <div className="h-4 bg-gray-100 rounded w-1/2" />
-                    <div className="h-4 bg-gray-100 rounded w-2/3" />
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
+                    <div className="h-4 bg-muted rounded w-2/3" />
                   </div>
                 ) : detailError ? (
-                  <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                  <div className="rounded-lg bg-apple-error/10 border border-apple-error/20 px-3 py-2 text-sm text-apple-error">
                     {detailError}
-                    <button type="button" onClick={() => openDetail(selectedResident)} className="ml-2 underline hover:no-underline">
+                    <button
+                      type="button"
+                      onClick={() => openDetail(selectedResident)}
+                      className="ml-2 underline hover:no-underline"
+                    >
                       重试
                     </button>
                   </div>
                 ) : (
                   <dl className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <dt className="text-gray-500">姓名</dt>
-                      <dd className="font-medium text-gray-900">{residentDetail?.name || selectedResident.name}</dd>
+                      <dt className="text-muted-foreground">姓名</dt>
+                      <dd className="font-medium text-foreground">
+                        {residentDetail?.name || selectedResident.name}
+                      </dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-gray-500">手机号</dt>
-                      <dd className="font-medium text-gray-900">{residentDetail?.phone || selectedResident.phone}</dd>
+                      <dt className="text-muted-foreground">手机号</dt>
+                      <dd className="font-medium text-foreground">
+                        {residentDetail?.phone || selectedResident.phone}
+                      </dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-gray-500">注册来源</dt>
-                      <dd className="text-gray-700">
+                      <dt className="text-muted-foreground">注册来源</dt>
+                      <dd className="text-foreground/80">
                         {SOURCE_LABELS[residentDetail?.registrationSource || selectedResident.registrationSource] || selectedResident.registrationSource}
                       </dd>
                     </div>
                     {residentDetail?.createdAt && (
                       <div className="flex justify-between">
-                        <dt className="text-gray-500">注册时间</dt>
-                        <dd className="text-gray-700">
+                        <dt className="text-muted-foreground">注册时间</dt>
+                        <dd className="text-foreground/80">
                           {new Date(residentDetail.createdAt).toLocaleDateString("zh-CN")}
                         </dd>
                       </div>
                     )}
                     {residentDetail?.stats && (
-                      <div className="flex justify-between pt-2 border-t border-gray-100">
-                        <dt className="text-gray-500">监测次数</dt>
-                        <dd className="font-semibold text-blue-600">{residentDetail.stats.monitoringCount}</dd>
-                      </div>
-                    )}
-                    {residentDetail?.stats && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-500">预约次数</dt>
-                        <dd className="font-semibold text-blue-600">{residentDetail.stats.appointmentCount}</dd>
-                      </div>
+                      <>
+                        <div className="flex justify-between pt-2 border-t border-border">
+                          <dt className="text-muted-foreground">监测次数</dt>
+                          <dd className="font-semibold text-primary">
+                            {residentDetail.stats.monitoringCount}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-muted-foreground">预约次数</dt>
+                          <dd className="font-semibold text-primary">
+                            {residentDetail.stats.appointmentCount}
+                          </dd>
+                        </div>
+                      </>
                     )}
                   </dl>
                 )}
@@ -603,32 +593,39 @@ export default function ResidentsManagementPage() {
               {/* Store bindings */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">绑定门店</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    绑定门店
+                  </h4>
                   {canManage && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-primary hover:text-primary/80"
                       onClick={openBindModal}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
                     >
                       + 绑定门店
-                    </button>
+                    </Button>
                   )}
                 </div>
-                {(residentDetail?.stores || selectedResident.residentStores.map((s) => ({ id: s.store.id, name: s.store.name }))).length === 0 ? (
-                  <p className="text-sm text-gray-400">暂无绑定门店</p>
+                {detailStores.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">暂无绑定门店</p>
                 ) : (
                   <ul className="space-y-2">
-                    {(residentDetail?.stores || selectedResident.residentStores.map((s) => ({ id: s.store.id, name: s.store.name }))).map((store) => (
-                      <li key={store.id} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
-                        <span className="text-sm font-medium text-gray-900">{store.name}</span>
+                    {detailStores.map((store) => (
+                      <li
+                        key={store.id}
+                        className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                      >
+                        <span className="text-sm font-medium text-foreground">{store.name}</span>
                         {canManage && (
-                          <button
-                            type="button"
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-apple-error hover:text-apple-error/80"
                             onClick={() => confirmUnbind(store.id, store.name)}
-                            className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
                           >
                             解绑
-                          </button>
+                          </Button>
                         )}
                       </li>
                     ))}
@@ -638,26 +635,28 @@ export default function ResidentsManagementPage() {
 
               {/* Tabs: monitoring history / appointments */}
               <div>
-                <div className="flex border-b border-gray-200">
+                <div className="flex border-b border-border">
                   <button
                     type="button"
                     onClick={() => handleTabChange("monitoring")}
-                    className={`flex-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                    className={cn(
+                      "flex-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
                       activeTab === "monitoring"
-                        ? "border-blue-600 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700"
-                    }`}
+                        ? "text-foreground border-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
                   >
                     监测记录
                   </button>
                   <button
                     type="button"
                     onClick={() => handleTabChange("appointments")}
-                    className={`flex-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                    className={cn(
+                      "flex-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
                       activeTab === "appointments"
-                        ? "border-blue-600 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700"
-                    }`}
+                        ? "text-foreground border-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
                   >
                     预约记录
                   </button>
@@ -665,7 +664,7 @@ export default function ResidentsManagementPage() {
 
                 {/* Tab error */}
                 {tabError && (
-                  <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                  <div className="mt-3 rounded-lg bg-apple-error/10 border border-apple-error/20 px-3 py-2 text-sm text-apple-error">
                     {tabError}
                   </div>
                 )}
@@ -675,40 +674,48 @@ export default function ResidentsManagementPage() {
                   {tabLoading ? (
                     <div className="space-y-2 animate-pulse">
                       {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-12 bg-gray-100 rounded" />
+                        <div key={i} className="h-12 bg-muted rounded" />
                       ))}
                     </div>
                   ) : activeTab === "monitoring" ? (
                     monitoringRecords.length === 0 ? (
-                      <p className="text-sm text-gray-400 py-4 text-center">暂无监测记录</p>
+                      <p className="text-sm text-muted-foreground py-4 text-center">暂无监测记录</p>
                     ) : (
                       <div className="space-y-2">
                         {monitoringRecords.map((record) => (
-                          <div key={record.id} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+                          <div
+                            key={record.id}
+                            className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                          >
                             <div>
-                              <p className="text-sm font-medium text-gray-900">
-                                评分: <span className={record.score >= 80 ? "text-green-600" : record.score >= 60 ? "text-yellow-600" : "text-red-600"}>{record.score}</span>
+                              <p className="text-sm font-medium text-foreground">
+                                评分:{" "}
+                                <span className={getScoreColorClass(record.score)}>
+                                  {record.score}
+                                </span>
                               </p>
                               {record.constitutionType && (
-                                <p className="text-xs text-gray-500">{record.constitutionType}</p>
+                                <p className="text-xs text-muted-foreground">{record.constitutionType}</p>
                               )}
                             </div>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-muted-foreground">
                               {new Date(record.monitoringDate).toLocaleDateString("zh-CN")}
                             </span>
                           </div>
                         ))}
                       </div>
                     )
-                  ) : // appointments tab
-                  appointmentRecords.length === 0 ? (
-                    <p className="text-sm text-gray-400 py-4 text-center">暂无预约记录</p>
+                  ) : appointmentRecords.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">暂无预约记录</p>
                   ) : (
                     <div className="space-y-2">
                       {appointmentRecords.map((apt) => (
-                        <div key={apt.id} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+                        <div
+                          key={apt.id}
+                          className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                        >
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-foreground">
                               {new Date(apt.scheduledAt).toLocaleString("zh-CN", {
                                 month: "2-digit",
                                 day: "2-digit",
@@ -716,14 +723,17 @@ export default function ResidentsManagementPage() {
                                 minute: "2-digit",
                               })}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               {apt.room?.name || "未分配房间"}
                               {apt.machine?.name ? ` · ${apt.machine.name}` : ""}
                             </p>
                           </div>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${APPOINTMENT_STATUS_CLASSES[apt.status] || "bg-gray-50 text-gray-500 ring-gray-400/20"}`}>
-                            {APPOINTMENT_STATUS_LABELS[apt.status] || apt.status}
-                          </span>
+                          <StatusBadge
+                            status={apt.status}
+                            colorMap={APPOINTMENT_STATUS_COLORS}
+                            labelMap={APPOINTMENT_STATUS_LABELS}
+                            variant="ring"
+                          />
                         </div>
                       ))}
                     </div>
@@ -736,102 +746,61 @@ export default function ResidentsManagementPage() {
       )}
 
       {/* ── Bind store modal ── */}
-      {showBindModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowBindModal(false)} />
-          <div className="relative z-10 w-full max-w-sm rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">绑定门店</h3>
-            </div>
-            <div className="p-6 space-y-4">
-              {bindError && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-                  {bindError}
-                </div>
-              )}
-              <div>
-                <label htmlFor="bind-store-select" className="block text-sm font-medium text-gray-700 mb-1">
-                  选择门店
-                </label>
-                {storesLoading ? (
-                  <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
-                ) : (
-                  <select
-                    id="bind-store-select"
-                    value={selectedStoreId}
-                    onChange={(e) => setSelectedStoreId(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  >
-                    <option value="">请选择门店</option>
-                    {storeOptions.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowBindModal(false)}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  disabled={!selectedStoreId || bindSubmitting}
-                  onClick={handleBindSubmit}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  {bindSubmitting && (
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  )}
-                  确认绑定
-                </button>
-              </div>
-            </div>
+      <FormModal
+        open={showBindModal}
+        onOpenChange={(open) => {
+          if (!open) setShowBindModal(false);
+        }}
+        title="绑定门店"
+        onSubmit={handleBindSubmit}
+        submitting={bindSubmitting}
+        error={bindError}
+        submitLabel="确认绑定"
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">选择门店</label>
+            {storesLoading ? (
+              <div className="h-10 bg-muted rounded-lg animate-pulse" />
+            ) : (
+              <Select
+                value={selectedStoreId}
+                onValueChange={setSelectedStoreId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择门店" />
+                </SelectTrigger>
+                <SelectContent>
+                  {storeOptions.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
-      )}
+      </FormModal>
 
       {/* ── Unbind confirmation dialog ── */}
-      {unbindTarget && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setUnbindTarget(null)} />
-          <div className="relative z-10 w-full max-w-sm rounded-xl bg-white shadow-2xl ring-1 ring-gray-900/5 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">确认解绑</h3>
-            <p className="text-sm text-gray-600 mb-6">
-              确定要将居民「{unbindTarget.residentName}」从门店「{unbindTarget.storeName}」解绑吗？
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setUnbindTarget(null)}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                disabled={unbindSubmitting}
-                onClick={handleUnbindConfirm}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
-              >
-                {unbindSubmitting && (
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                )}
-                确认解绑
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <FormModal
+        open={!!unbindTarget}
+        onOpenChange={(open) => {
+          if (!open) setUnbindTarget(null);
+        }}
+        title="确认解绑"
+        description={
+          unbindTarget
+            ? `确定要将居民「${unbindTarget.residentName}」从门店「${unbindTarget.storeName}」解绑吗？`
+            : undefined
+        }
+        onSubmit={handleUnbindConfirm}
+        submitting={unbindSubmitting}
+        submitLabel="确认解绑"
+      >
+        <></>
+      </FormModal>
     </div>
   );
 }

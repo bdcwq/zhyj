@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Bot, Pause, Play, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/page-header";
+import { DataTable, type Column } from "@/components/data-table";
+import { StatusBadge } from "@/components/status-badge";
+import { ErrorBanner } from "@/components/error-banner";
+import { EmptyState } from "@/components/empty-state";
 
 const fetchWithAuth = (url: string, init?: RequestInit) =>
   fetch(url, { ...init, credentials: "include" });
@@ -32,14 +38,14 @@ interface RobotSession {
   appointment?: VerifiedAppointment;
 }
 
-const SESSION_STATUS_COLORS: Record<string, string> = {
-  active: "bg-green-100 text-green-700",
-  paused: "bg-yellow-100 text-yellow-700",
-  completed: "bg-gray-100 text-gray-700",
-  error: "bg-red-100 text-red-700",
+const SESSION_COLOR_MAP: Record<string, string> = {
+  active: "bg-apple-success/10 text-apple-success",
+  paused: "bg-apple-warning/10 text-apple-warning",
+  completed: "bg-muted text-muted-foreground",
+  error: "bg-apple-error/10 text-apple-error",
 };
 
-const SESSION_STATUS_LABELS: Record<string, string> = {
+const SESSION_LABEL_MAP: Record<string, string> = {
   active: "进行中",
   paused: "已暂停",
   completed: "已完成",
@@ -182,26 +188,149 @@ export default function RobotSessionsPage() {
     }
   };
 
+  /* ── Verified appointments columns ── */
+  const appointmentColumns: Column<VerifiedAppointment>[] = [
+    {
+      key: "scheduledAt",
+      header: "预约时间",
+      render: (a) => new Date(a.scheduledAt).toLocaleString("zh-CN"),
+    },
+    {
+      key: "resident",
+      header: "居民",
+      render: (a) => a.resident?.name || "-",
+    },
+    {
+      key: "room",
+      header: "房间",
+      render: (a) => a.room?.name || "-",
+    },
+    {
+      key: "machine",
+      header: "设备",
+      render: (a) => a.machine?.name || "-",
+    },
+  ];
+
+  /* ── Sessions columns ── */
+  const sessionColumns: Column<RobotSession>[] = [
+    {
+      key: "resident",
+      header: "居民",
+      render: (s) => s.appointment?.resident?.name || "-",
+    },
+    {
+      key: "machine",
+      header: "设备",
+      render: (s) => s.appointment?.machine?.name || "-",
+    },
+    {
+      key: "status",
+      header: "状态",
+      render: (s) => (
+        <StatusBadge
+          status={s.status}
+          colorMap={SESSION_COLOR_MAP}
+          labelMap={SESSION_LABEL_MAP}
+        />
+      ),
+    },
+    {
+      key: "progress",
+      header: "进度",
+      render: (s) => (
+        <div className="flex items-center gap-2">
+          <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${s.progress}%` }}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">{s.progress}%</span>
+        </div>
+      ),
+    },
+    {
+      key: "startedAt",
+      header: "开始时间",
+      render: (s) =>
+        new Date(s.startedAt).toLocaleTimeString("zh-CN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+    },
+    {
+      key: "actions",
+      header: "操作",
+      render: (s) => (
+        <div className="flex items-center gap-2">
+          {s.status === "active" && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handlePauseSession(s.id)}
+                className="bg-apple-warning/10 text-apple-warning border-apple-warning/30 hover:bg-apple-warning/20"
+              >
+                <Pause className="h-3.5 w-3.5 mr-1" />
+                暂停
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStopSession(s.id)}
+                className="text-apple-error border-apple-error/30 hover:bg-apple-error/10"
+              >
+                <Square className="h-3.5 w-3.5 mr-1" />
+                停止
+              </Button>
+            </>
+          )}
+          {s.status === "paused" && (
+            <>
+              <Button
+                size="sm"
+                onClick={() => handleResumeSession(s.id)}
+                className="bg-apple-success text-white hover:bg-apple-success/90"
+              >
+                <Play className="h-3.5 w-3.5 mr-1" />
+                继续
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleStopSession(s.id)}
+                className="text-apple-error border-apple-error/30 hover:bg-apple-error/10"
+              >
+                <Square className="h-3.5 w-3.5 mr-1" />
+                停止
+              </Button>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">机器人管理</h2>
+      <PageHeader
+        title="机器人管理"
+        description="管理理疗会话的启动、暂停和停止"
+      />
 
-      {error && (
-        <div className="p-2 bg-red-50 text-red-600 text-sm rounded">
-          {error}
-        </div>
-      )}
+      {error && <ErrorBanner message={error} onRetry={loadSessions} />}
 
       {/* Start new session */}
-      <div className="bg-white rounded-lg border p-4">
-        <h3 className="font-medium mb-3">开始理疗</h3>
+      <div className="bg-card rounded-xl border border-border shadow-sm p-6">
+        <h3 className="font-medium mb-3 text-foreground">开始理疗</h3>
         {verifiedAppointments.length === 0 ? (
-          <p className="text-sm text-gray-400">暂无已核销待理疗的预约</p>
+          <EmptyState
+            icon={<Bot className="h-8 w-8" />}
+            message="暂无已核销待理疗的预约"
+          />
         ) : (
-          <form
-            onSubmit={handleStartSession}
-            className="space-y-3"
-          >
+          <form onSubmit={handleStartSession} className="space-y-3">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="appointment-select">选择预约</Label>
@@ -249,135 +378,25 @@ export default function RobotSessionsPage() {
         {/* Verified appointments list */}
         {verifiedAppointments.length > 0 && (
           <div className="mt-4">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-gray-500">
-                  <th className="pb-2">预约时间</th>
-                  <th className="pb-2">居民</th>
-                  <th className="pb-2">房间</th>
-                  <th className="pb-2">设备</th>
-                </tr>
-              </thead>
-              <tbody>
-                {verifiedAppointments.map((a) => (
-                  <tr key={a.id} className="border-b last:border-0">
-                    <td className="py-2">
-                      {new Date(a.scheduledAt).toLocaleString("zh-CN")}
-                    </td>
-                    <td className="py-2">{a.resident?.name || "-"}</td>
-                    <td className="py-2">{a.room?.name || "-"}</td>
-                    <td className="py-2">{a.machine?.name || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              columns={appointmentColumns}
+              data={verifiedAppointments}
+              emptyMessage="暂无已核销待理疗的预约"
+            />
           </div>
         )}
       </div>
 
       {/* Active sessions */}
-      <div className="bg-white rounded-lg border p-4">
-        <h3 className="font-medium mb-3">理疗会话</h3>
-        {loading ? (
-          <p className="text-sm text-gray-400">加载中...</p>
-        ) : sessions.length === 0 ? (
-          <p className="text-sm text-gray-400">暂无进行中的会话</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="pb-2">居民</th>
-                <th className="pb-2">设备</th>
-                <th className="pb-2">状态</th>
-                <th className="pb-2">进度</th>
-                <th className="pb-2">开始时间</th>
-                <th className="pb-2">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map((s) => (
-                <tr key={s.id} className="border-b last:border-0">
-                  <td className="py-2">
-                    {s.appointment?.resident?.name || "-"}
-                  </td>
-                  <td className="py-2">
-                    {s.appointment?.machine?.name || "-"}
-                  </td>
-                  <td className="py-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs ${
-                        SESSION_STATUS_COLORS[s.status] ||
-                        "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {SESSION_STATUS_LABELS[s.status] || s.status}
-                    </span>
-                  </td>
-                  <td className="py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all"
-                          style={{ width: `${s.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {s.progress}%
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-2">
-                    {new Date(s.startedAt).toLocaleTimeString("zh-CN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </td>
-                  <td className="py-2">
-                    <div className="flex gap-2">
-                      {s.status === "active" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handlePauseSession(s.id)}
-                          >
-                            暂停
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleStopSession(s.id)}
-                            className="text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            停止
-                          </Button>
-                        </>
-                      )}
-                      {s.status === "paused" && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => handleResumeSession(s.id)}
-                          >
-                            继续
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleStopSession(s.id)}
-                            className="text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            停止
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <div className="bg-card rounded-xl border border-border shadow-sm p-6">
+        <h3 className="font-medium mb-3 text-foreground">理疗会话</h3>
+        <DataTable
+          columns={sessionColumns}
+          data={sessions}
+          loading={loading}
+          onRetry={loadSessions}
+          emptyMessage="暂无进行中的会话"
+        />
       </div>
     </div>
   );

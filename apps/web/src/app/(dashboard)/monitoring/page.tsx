@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Download } from "lucide-react";
 import { CONSTITUTION_TYPES } from "@zhyj/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/page-header";
+import { DataTable, type Column } from "@/components/data-table";
+import { ErrorBanner } from "@/components/error-banner";
 import {
   LineChart,
   Line,
@@ -131,29 +135,48 @@ export default function MonitoringPage() {
       score: r.score,
     }));
 
+  const columns: Column<MonitoringRecord>[] = [
+    {
+      key: "monitoringDate",
+      header: "日期",
+      render: (row) => new Date(row.monitoringDate).toLocaleDateString("zh-CN"),
+    },
+    {
+      key: "score",
+      header: "评分",
+      render: (row) => row.score,
+    },
+    {
+      key: "constitutionType",
+      header: "体质类型",
+      render: (row) => row.constitutionType,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">体质监测</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const params = new URLSearchParams();
-            if (selectedResident) params.set("residentId", selectedResident);
-            const qs = params.toString();
-            window.open(`/api/v1/export/monitoring${qs ? `?${qs}` : ""}`, "_blank");
-          }}
-        >
-          <svg className="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          导出
-        </Button>
-      </div>
+      <PageHeader
+        title="体质监测"
+        description="居民体质监测记录与评分趋势"
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (selectedResident) params.set("residentId", selectedResident);
+              const qs = params.toString();
+              window.open(`/api/v1/export/monitoring${qs ? `?${qs}` : ""}`, "_blank");
+            }}
+          >
+            <Download className="mr-1.5 h-4 w-4" />
+            导出
+          </Button>
+        }
+      />
 
       {/* Resident search */}
-      <div className="bg-white rounded-lg border p-4">
+      <div className="bg-card rounded-xl border border-border shadow-sm p-6">
         <Label className="mb-2 block">搜索居民</Label>
         <Input
           placeholder="输入姓名或手机号搜索"
@@ -170,16 +193,16 @@ export default function MonitoringPage() {
                   handleSelectResident(r.id);
                   setSearch("");
                 }}
-                className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm flex justify-between"
+                className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex justify-between"
               >
                 <span>{r.name}</span>
-                <span className="text-gray-400">{r.phone}</span>
+                <span className="text-muted-foreground">{r.phone}</span>
               </button>
             ))}
           </div>
         )}
         {selectedResident && (
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-foreground">
             当前居民：{residents.find((r) => r.id === selectedResident)?.name}
           </p>
         )}
@@ -187,11 +210,9 @@ export default function MonitoringPage() {
 
       {/* Monitoring form */}
       {selectedResident && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg border p-4 space-y-3">
-          <h3 className="font-medium">新增监测记录</h3>
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
+        <form onSubmit={handleSubmit} className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-3">
+          <h3 className="font-medium text-foreground">新增监测记录</h3>
+          {error && <ErrorBanner message={error} />}
           <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="score">评分 (0-100)</Label>
@@ -239,51 +260,29 @@ export default function MonitoringPage() {
 
       {/* Records table */}
       {selectedResident && (
-        <div className="bg-white rounded-lg border p-4">
-          <h3 className="font-medium mb-3">监测记录</h3>
-          {loading ? (
-            <p className="text-sm text-gray-400">加载中...</p>
-          ) : records.length === 0 ? (
-            <p className="text-sm text-gray-400">暂无记录</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-gray-500">
-                  <th className="pb-2">日期</th>
-                  <th className="pb-2">评分</th>
-                  <th className="pb-2">体质类型</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((r) => (
-                  <tr key={r.id} className="border-b last:border-0">
-                    <td className="py-2">
-                      {new Date(r.monitoringDate).toLocaleDateString("zh-CN")}
-                    </td>
-                    <td className="py-2">{r.score}</td>
-                    <td className="py-2">{r.constitutionType}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <DataTable
+          columns={columns}
+          data={records}
+          loading={loading}
+          onRetry={() => loadRecords(selectedResident)}
+          emptyMessage="暂无监测记录"
+        />
       )}
 
       {/* Score trend chart */}
       {selectedResident && chartData.length >= 2 && (
-        <div className="bg-white rounded-lg border p-4">
-          <h3 className="font-medium mb-3">评分趋势</h3>
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6">
+          <h3 className="font-medium mb-3 text-foreground">评分趋势</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis domain={[0, 100]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+              <YAxis domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))" }} />
               <Tooltip />
               <Line
                 type="monotone"
                 dataKey="score"
-                stroke="#3b82f6"
+                stroke="hsl(var(--primary))"
                 strokeWidth={2}
               />
             </LineChart>

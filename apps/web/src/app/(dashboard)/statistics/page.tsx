@@ -1,9 +1,48 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { StatCard } from "@/components/stat-card";
+import { PageHeader } from "@/components/page-header";
+import { ErrorBanner } from "@/components/error-banner";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  ComposedChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+
+// ── Apple chart color constants ──
+
+const APPLE_BLUE = "#0071e3";
+const APPLE_GREEN = "#34C759";
+const APPLE_ORANGE = "#FF9F0A";
+const APPLE_RED = "#FF3B30";
+const APPLE_PURPLE = "#AF52DE";
+const APPLE_CYAN = "#5AC8FA";
+const CARTESIAN_STROKE = "#e5e5e5";
+
+// ── Helpers ──
 
 const fetchWithAuth = (url: string) =>
   fetch(url, { credentials: "include" });
+
+function today() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function thirtyDaysAgo() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().split("T")[0];
+}
 
 // ── Types ──
 
@@ -55,18 +94,6 @@ interface ActivityTypeBreakdown {
 
 type Period = "daily" | "weekly" | "monthly";
 
-// ── Helpers ──
-
-function today() {
-  return new Date().toISOString().split("T")[0];
-}
-
-function thirtyDaysAgo() {
-  const d = new Date();
-  d.setDate(d.getDate() - 30);
-  return d.toISOString().split("T")[0];
-}
-
 const PERIOD_LABELS: Record<Period, string> = {
   daily: "日",
   weekly: "周",
@@ -75,10 +102,10 @@ const PERIOD_LABELS: Record<Period, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   booked: "#94a3b8",
-  verified: "#60a5fa",
-  completed: "#34d399",
-  cancelled: "#f87171",
-  noShow: "#fbbf24",
+  verified: APPLE_BLUE,
+  completed: APPLE_GREEN,
+  cancelled: APPLE_RED,
+  noShow: APPLE_ORANGE,
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -98,11 +125,11 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
 };
 
 const ACTIVITY_TYPE_COLORS: Record<string, string> = {
-  course: "#3b82f6",
-  exercise: "#34d399",
-  experience: "#a78bfa",
-  live_stream: "#f472b6",
-  custom: "#fbbf24",
+  course: APPLE_BLUE,
+  exercise: APPLE_GREEN,
+  experience: APPLE_PURPLE,
+  live_stream: "#FF6482",
+  custom: APPLE_ORANGE,
 };
 
 // ── Component ──
@@ -178,19 +205,6 @@ export default function StatisticsPage() {
     loadData();
   }, [loadData]);
 
-  // ── Overview cards ──
-
-  const overviewCards = overview
-    ? [
-        { label: "监测次数", value: overview.monitoringCount, color: "text-blue-600" },
-        { label: "预约总数", value: overview.appointmentCount, color: "text-violet-600" },
-        { label: "已完成", value: overview.completedCount, color: "text-emerald-600" },
-        { label: "爽约", value: overview.noShowCount, color: "text-amber-600" },
-        { label: "新居民", value: overview.newResidentsCount, color: "text-cyan-600" },
-        { label: "已取消", value: overview.cancelledCount, color: "text-red-500" },
-      ]
-    : [];
-
   // ── Period tabs ──
 
   const periods: Period[] = ["daily", "weekly", "monthly"];
@@ -199,56 +213,52 @@ export default function StatisticsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">数据统计</h2>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-500">概览日期</label>
-          <input
-            type="date"
-            value={overviewDate}
-            onChange={(e) => setOverviewDate(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1 text-sm"
-          />
-        </div>
-      </div>
+      <PageHeader
+        title="数据统计"
+        actions={
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground">概览日期</label>
+            <input
+              type="date"
+              value={overviewDate}
+              onChange={(e) => setOverviewDate(e.target.value)}
+              className="rounded-md border border-border px-2 py-1 text-sm"
+            />
+          </div>
+        }
+      />
 
       {/* Error banner */}
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <ErrorBanner message={error} />}
 
       {/* Overview cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        {overviewCards.map((card) => (
-          <div key={card.label} className="rounded-xl border bg-white p-4 shadow-sm">
-            <p className="text-sm text-gray-500">{card.label}</p>
-            <p className={`mt-1 text-2xl font-bold ${card.color}`}>
-              {loading ? "—" : card.value}
-            </p>
-          </div>
-        ))}
+        <StatCard label="监测次数" value={overview?.monitoringCount ?? 0} color="text-primary" loading={loading} />
+        <StatCard label="预约总数" value={overview?.appointmentCount ?? 0} color="text-apple-purple" loading={loading} />
+        <StatCard label="已完成" value={overview?.completedCount ?? 0} color="text-apple-success" loading={loading} />
+        <StatCard label="爽约" value={overview?.noShowCount ?? 0} color="text-apple-warning" loading={loading} />
+        <StatCard label="新居民" value={overview?.newResidentsCount ?? 0} color="text-apple-cyan" loading={loading} />
+        <StatCard label="已取消" value={overview?.cancelledCount ?? 0} color="text-apple-error" loading={loading} />
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4">
-        <div className="inline-flex items-center rounded-lg bg-gray-100 p-1">
+        <div className="inline-flex items-center rounded-lg bg-muted p-1">
           {periods.map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
               className={`rounded-md px-3 py-1 text-sm font-medium transition-all ${
                 period === p
-                  ? "bg-white text-gray-900 shadow"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-card text-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {PERIOD_LABELS[p]}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <label htmlFor="dateFrom">从</label>
           <input
             id="dateFrom"
@@ -256,7 +266,7 @@ export default function StatisticsPage() {
             value={dateFrom}
             max={dateTo}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1"
+            className="rounded-md border border-border px-2 py-1"
           />
           <label htmlFor="dateTo">至</label>
           <input
@@ -265,13 +275,13 @@ export default function StatisticsPage() {
             value={dateTo}
             min={dateFrom}
             onChange={(e) => setDateTo(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1"
+            className="rounded-md border border-border px-2 py-1"
           />
         </div>
         <button
           onClick={loadData}
           disabled={loading}
-          className="rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? "加载中..." : "刷新"}
         </button>
@@ -279,7 +289,7 @@ export default function StatisticsPage() {
 
       {/* Charts grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-gray-400">
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
           <svg className="mr-2 h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -289,30 +299,30 @@ export default function StatisticsPage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Monitoring chart */}
-          <div className="rounded-xl border bg-white p-5 shadow-sm">
-            <h3 className="mb-4 font-semibold">监测趋势</h3>
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 font-semibold text-foreground">监测趋势</h3>
             {monitoring.length === 0 ? (
-              <p className="py-12 text-center text-sm text-gray-400">暂无监测数据</p>
+              <p className="py-12 text-center text-sm text-muted-foreground/60">暂无监测数据</p>
             ) : (
               <MonitoringChart data={monitoring} period={period} />
             )}
           </div>
 
           {/* Appointments chart */}
-          <div className="rounded-xl border bg-white p-5 shadow-sm">
-            <h3 className="mb-4 font-semibold">预约统计</h3>
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 font-semibold text-foreground">预约统计</h3>
             {appointments.length === 0 ? (
-              <p className="py-12 text-center text-sm text-gray-400">暂无预约数据</p>
+              <p className="py-12 text-center text-sm text-muted-foreground/60">暂无预约数据</p>
             ) : (
               <AppointmentsChart data={appointments} period={period} />
             )}
           </div>
 
           {/* Residents chart — full width */}
-          <div className="rounded-xl border bg-white p-5 shadow-sm lg:col-span-2">
-            <h3 className="mb-4 font-semibold">居民趋势</h3>
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
+            <h3 className="mb-4 font-semibold text-foreground">居民趋势</h3>
             {residents.length === 0 ? (
-              <p className="py-12 text-center text-sm text-gray-400">暂无居民数据</p>
+              <p className="py-12 text-center text-sm text-muted-foreground/60">暂无居民数据</p>
             ) : (
               <ResidentsChart data={residents} period={period} />
             )}
@@ -323,43 +333,23 @@ export default function StatisticsPage() {
       {/* Activity statistics section */}
       {!loading && (
         <div className="space-y-6">
-          <h3 className="border-b pb-2 text-lg font-semibold">活动统计</h3>
+          <h3 className="border-b border-border pb-2 text-lg font-semibold text-foreground">活动统计</h3>
 
           {/* Activity overview cards */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="rounded-xl border bg-white p-4 shadow-sm">
-              <p className="text-sm text-gray-500">活动场次</p>
-              <p className="mt-1 text-2xl font-bold text-blue-600">
-                {activityStats?.activityCount ?? 0}
-              </p>
-            </div>
-            <div className="rounded-xl border bg-white p-4 shadow-sm">
-              <p className="text-sm text-gray-500">参与人次</p>
-              <p className="mt-1 text-2xl font-bold text-violet-600">
-                {activityStats?.totalRegistrations ?? 0}
-              </p>
-            </div>
-            <div className="rounded-xl border bg-white p-4 shadow-sm">
-              <p className="text-sm text-gray-500">签到率</p>
-              <p className="mt-1 text-2xl font-bold text-emerald-600">
-                {activityStats?.checkInRate ?? 0}%
-              </p>
-            </div>
-            <div className="rounded-xl border bg-white p-4 shadow-sm">
-              <p className="text-sm text-gray-500">爽约率</p>
-              <p className="mt-1 text-2xl font-bold text-amber-600">
-                {activityStats?.noShowRate ?? 0}%
-              </p>
-            </div>
+            <StatCard label="活动场次" value={activityStats?.activityCount ?? 0} color="text-primary" />
+            <StatCard label="参与人次" value={activityStats?.totalRegistrations ?? 0} color="text-apple-purple" />
+            <StatCard label="签到率" value={`${activityStats?.checkInRate ?? 0}%`} color="text-apple-success" />
+            <StatCard label="爽约率" value={`${activityStats?.noShowRate ?? 0}%`} color="text-apple-warning" />
           </div>
 
           {/* Activity charts */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Activity count by type */}
-            <div className="rounded-xl border bg-white p-5 shadow-sm">
-              <h4 className="mb-4 font-semibold">活动类型分布</h4>
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+              <h4 className="mb-4 font-semibold text-foreground">活动类型分布</h4>
               {(!activityStats?.breakdown || activityStats.breakdown.length === 0) ? (
-                <p className="py-12 text-center text-sm text-gray-400">暂无活动数据</p>
+                <p className="py-12 text-center text-sm text-muted-foreground/60">暂无活动数据</p>
               ) : (
                 <ActivityTypeChart
                   data={activityStats.breakdown.map((b) => ({
@@ -372,10 +362,10 @@ export default function StatisticsPage() {
             </div>
 
             {/* Participation by type */}
-            <div className="rounded-xl border bg-white p-5 shadow-sm">
-              <h4 className="mb-4 font-semibold">各类型参与情况</h4>
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+              <h4 className="mb-4 font-semibold text-foreground">各类型参与情况</h4>
               {(!activityStats?.breakdown || activityStats.breakdown.length === 0) ? (
-                <p className="py-12 text-center text-sm text-gray-400">暂无活动数据</p>
+                <p className="py-12 text-center text-sm text-muted-foreground/60">暂无活动数据</p>
               ) : (
                 <ActivityParticipationChart
                   data={activityStats.breakdown.map((b) => ({
@@ -392,22 +382,7 @@ export default function StatisticsPage() {
   );
 }
 
-// ── Chart sub-components (lazy recharts import boundary) ──
-
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  ComposedChart,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
+// ── Chart sub-components ──
 
 function MonitoringChart({
   data,
@@ -416,23 +391,22 @@ function MonitoringChart({
   data: MonitoringRecord[];
   period: Period;
 }) {
-  const label = period === "daily" ? "日期" : period === "weekly" ? "周" : "月";
   return (
     <ResponsiveContainer width="100%" height={280}>
       <ComposedChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={CARTESIAN_STROKE} />
         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
         <YAxis yAxisId="count" tick={{ fontSize: 11 }} />
         <YAxis yAxisId="score" orientation="right" tick={{ fontSize: 11 }} domain={[0, 100]} />
         <Tooltip />
         <Legend />
-        <Bar yAxisId="count" dataKey="count" name="监测次数" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+        <Bar yAxisId="count" dataKey="count" name="监测次数" fill={APPLE_BLUE} radius={[4, 4, 0, 0]} />
         <Line
           yAxisId="score"
           type="monotone"
           dataKey="avgScore"
           name="平均评分"
-          stroke="#f59e0b"
+          stroke={APPLE_ORANGE}
           strokeWidth={2}
         />
       </ComposedChart>
@@ -442,7 +416,6 @@ function MonitoringChart({
 
 function AppointmentsChart({
   data,
-  period,
 }: {
   data: AppointmentRecord[];
   period: Period;
@@ -450,7 +423,7 @@ function AppointmentsChart({
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={CARTESIAN_STROKE} />
         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
@@ -471,7 +444,6 @@ function AppointmentsChart({
 
 function ResidentsChart({
   data,
-  period,
 }: {
   data: ResidentRecord[];
   period: Period;
@@ -479,7 +451,7 @@ function ResidentsChart({
   return (
     <ResponsiveContainer width="100%" height={280}>
       <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={CARTESIAN_STROKE} />
         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
@@ -488,7 +460,7 @@ function ResidentsChart({
           type="monotone"
           dataKey="newCount"
           name="新增居民"
-          stroke="#06b6d4"
+          stroke={APPLE_CYAN}
           strokeWidth={2}
           dot={{ r: 3 }}
         />
@@ -496,7 +468,7 @@ function ResidentsChart({
           type="monotone"
           dataKey="totalCount"
           name="累计居民"
-          stroke="#8b5cf6"
+          stroke={APPLE_PURPLE}
           strokeWidth={2}
           dot={{ r: 3 }}
         />
@@ -513,7 +485,7 @@ function ActivityTypeChart({
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={CARTESIAN_STROKE} />
         <XAxis dataKey="type" tick={{ fontSize: 11 }} />
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
@@ -535,11 +507,11 @@ function ActivityParticipationChart({
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={CARTESIAN_STROKE} />
         <XAxis dataKey="type" tick={{ fontSize: 11 }} />
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
-        <Bar dataKey="registrations" name="参与人次" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="registrations" name="参与人次" fill={APPLE_PURPLE} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
