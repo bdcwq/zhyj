@@ -97,7 +97,7 @@ function handleLogout() {
 <style scoped>
 .profile-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f5f7;
 }
 
 .profile-header {
@@ -156,7 +156,7 @@ function handleLogout() {
   flex-direction: row;
   align-items: center;
   padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #f5f5f7;
 }
 
 .quick-link-item:last-child {
@@ -171,12 +171,12 @@ function handleLogout() {
 .quick-link-text {
   flex: 1;
   font-size: 28rpx;
-  color: #333;
+  color: #1d1d1f;
 }
 
 .quick-link-arrow {
   font-size: 32rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 
 /* Info section */
@@ -194,7 +194,7 @@ function handleLogout() {
   justify-content: space-between;
   align-items: center;
   padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #f5f5f7;
 }
 
 .info-item:last-child {
@@ -203,12 +203,12 @@ function handleLogout() {
 
 .info-label {
   font-size: 28rpx;
-  color: #666;
+  color: #86868b;
 }
 
 .info-value {
   font-size: 28rpx;
-  color: #333;
+  color: #1d1d1f;
 }
 
 .action-section {
@@ -231,7 +231,7 @@ function handleLogout() {
 }
 
 .action-text--danger {
-  color: #e53935;
+  color: #FF3B30;
 }
 
 .version {
@@ -242,6 +242,6 @@ function handleLogout() {
 
 .version-text {
   font-size: 24rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 </style>

@@ -70,7 +70,7 @@ async function handleWechatLogin() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, #e8f5e9 0%, #f5f5f5 100%);
+  background: linear-gradient(180deg, #f5f5f7 0%, #f5f5f7 100%);
   padding: 0 60rpx;
 }
 
@@ -96,13 +96,13 @@ async function handleWechatLogin() {
 .app-title {
   font-size: 48rpx;
   font-weight: 700;
-  color: #2e7d32;
+  color: #34C759;
   margin-bottom: 16rpx;
 }
 
 .app-subtitle {
   font-size: 28rpx;
-  color: #666;
+  color: #86868b;
 }
 
 .login-actions {
@@ -120,7 +120,7 @@ async function handleWechatLogin() {
   background-color: #07c160;
   border-radius: 48rpx;
   border: none;
-  box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.3);
+  box-shadow: 0 8rpx 24rpx rgba(52, 199, 89, 0.3);
 }
 
 .wechat-btn--loading {
@@ -148,7 +148,7 @@ async function handleWechatLogin() {
 
 .terms-text {
   font-size: 24rpx;
-  color: #999;
+  color: #aeaeb2;
 }
 
 .terms-link {

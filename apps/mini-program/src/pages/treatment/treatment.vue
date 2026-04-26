@@ -202,7 +202,7 @@ function formatStartedAt(dateStr: string): string {
 <style scoped>
 .treatment-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f5f7;
   padding: 30rpx;
   padding-bottom: 120rpx;
 }
@@ -237,7 +237,7 @@ function formatStartedAt(dateStr: string): string {
 .card-date {
   font-size: 28rpx;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
 }
 
 /* Status badges */
@@ -247,38 +247,38 @@ function formatStartedAt(dateStr: string): string {
 }
 
 .status-badge--blue {
-  background-color: rgba(24, 144, 255, 0.1);
+  background-color: rgba(0, 113, 227, 0.1);
 }
 .status-badge--blue .status-text {
-  color: #1890ff;
+  color: #0071e3;
 }
 
 .status-badge--green {
-  background-color: rgba(7, 193, 96, 0.1);
+  background-color: rgba(52, 199, 89, 0.1);
 }
 .status-badge--green .status-text {
   color: #07c160;
 }
 
 .status-badge--orange {
-  background-color: rgba(255, 152, 0, 0.1);
+  background-color: rgba(255, 159, 10, 0.1);
 }
 .status-badge--orange .status-text {
-  color: #ff9800;
+  color: #FF9F0A;
 }
 
 .status-badge--gray {
-  background-color: rgba(153, 153, 153, 0.1);
+  background-color: rgba(174, 174, 178, 0.1);
 }
 .status-badge--gray .status-text {
-  color: #999;
+  color: #aeaeb2;
 }
 
 .status-badge--red {
-  background-color: rgba(229, 57, 53, 0.1);
+  background-color: rgba(255, 59, 48, 0.1);
 }
 .status-badge--red .status-text {
-  color: #e53935;
+  color: #FF3B30;
 }
 
 .status-text {
@@ -301,13 +301,13 @@ function formatStartedAt(dateStr: string): string {
 
 .card-label {
   font-size: 26rpx;
-  color: #999;
+  color: #aeaeb2;
   width: 100rpx;
 }
 
 .card-value {
   font-size: 26rpx;
-  color: #333;
+  color: #1d1d1f;
 }
 
 /* Load more */
@@ -336,7 +336,7 @@ function formatStartedAt(dateStr: string): string {
 
 .no-more-text {
   font-size: 24rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 
 /* Empty state */
@@ -354,12 +354,12 @@ function formatStartedAt(dateStr: string): string {
 
 .empty-text {
   font-size: 32rpx;
-  color: #666;
+  color: #86868b;
   margin-bottom: 16rpx;
 }
 
 .empty-desc {
   font-size: 26rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 </style>

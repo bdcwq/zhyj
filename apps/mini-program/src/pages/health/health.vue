@@ -236,9 +236,9 @@ function drawChart() {
       ctx.fillRect(0, 0, w, h)
 
       // Grid lines and Y-axis labels
-      ctx.strokeStyle = '#f0f0f0'
+      ctx.strokeStyle = '#f5f5f7'
       ctx.lineWidth = 1
-      ctx.fillStyle = '#999'
+      ctx.fillStyle = '#aeaeb2'
       ctx.font = '10px sans-serif'
       ctx.textAlign = 'right'
 
@@ -283,8 +283,8 @@ function drawChart() {
         ctx.lineTo(points[points.length - 1].x, marginTop + chartH)
         ctx.closePath()
         const gradient = ctx.createLinearGradient(0, marginTop, 0, marginTop + chartH)
-        gradient.addColorStop(0, 'rgba(7, 193, 96, 0.2)')
-        gradient.addColorStop(1, 'rgba(7, 193, 96, 0.02)')
+        gradient.addColorStop(0, 'rgba(52, 199, 89, 0.2)')
+        gradient.addColorStop(1, 'rgba(52, 199, 89, 0.02)')
         ctx.fillStyle = gradient
         ctx.fill()
       }
@@ -302,12 +302,12 @@ function drawChart() {
         ctx.stroke()
 
         // Score label above dot
-        ctx.fillStyle = '#333'
+        ctx.fillStyle = '#1d1d1f'
         ctx.font = 'bold 10px sans-serif'
         ctx.fillText(String(scores[i]), points[i].x, points[i].y - 10)
 
         // X-axis date label
-        ctx.fillStyle = '#999'
+        ctx.fillStyle = '#aeaeb2'
         ctx.font = '10px sans-serif'
         const labelInterval = Math.max(1, Math.floor(n / 6))
         if (i % labelInterval === 0 || i === n - 1) {
@@ -338,7 +338,7 @@ function formatDateShort(dateStr: string): string {
 <style scoped>
 .health-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f5f7;
   padding-bottom: 40rpx;
 }
 
@@ -360,7 +360,7 @@ function formatDateShort(dateStr: string): string {
 .card-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: #1d1d1f;
   margin-bottom: 24rpx;
   display: block;
 }
@@ -379,13 +379,13 @@ function formatDateShort(dateStr: string): string {
 
 .info-label {
   font-size: 24rpx;
-  color: #999;
+  color: #aeaeb2;
   margin-bottom: 8rpx;
 }
 
 .info-value {
   font-size: 28rpx;
-  color: #333;
+  color: #1d1d1f;
   font-weight: 500;
 }
 
@@ -404,11 +404,11 @@ function formatDateShort(dateStr: string): string {
 }
 
 .score-mid {
-  color: #ffc107;
+  color: #FF9F0A;
 }
 
 .score-low {
-  color: #e53935;
+  color: #FF3B30;
 }
 
 /* Chart */
@@ -426,7 +426,7 @@ function formatDateShort(dateStr: string): string {
 
 .placeholder-text {
   font-size: 26rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 
 /* Records */
@@ -453,14 +453,14 @@ function formatDateShort(dateStr: string): string {
 
 .record-date {
   font-size: 26rpx;
-  color: #333;
+  color: #1d1d1f;
   margin-bottom: 8rpx;
 }
 
 .record-type {
   font-size: 24rpx;
   color: #07c160;
-  background-color: rgba(7, 193, 96, 0.08);
+  background-color: rgba(52, 199, 89, 0.08);
   padding: 4rpx 14rpx;
   border-radius: 8rpx;
   align-self: flex-start;
@@ -472,15 +472,15 @@ function formatDateShort(dateStr: string): string {
 }
 
 .badge-high {
-  background-color: rgba(7, 193, 96, 0.1);
+  background-color: rgba(52, 199, 89, 0.1);
 }
 
 .badge-mid {
-  background-color: rgba(255, 193, 7, 0.1);
+  background-color: rgba(255, 159, 10, 0.1);
 }
 
 .badge-low {
-  background-color: rgba(229, 57, 53, 0.1);
+  background-color: rgba(255, 59, 48, 0.1);
 }
 
 .record-score {
@@ -493,11 +493,11 @@ function formatDateShort(dateStr: string): string {
 }
 
 .badge-mid .record-score {
-  color: #ffc107;
+  color: #FF9F0A;
 }
 
 .badge-low .record-score {
-  color: #e53935;
+  color: #FF3B30;
 }
 
 /* Empty state */
@@ -515,12 +515,12 @@ function formatDateShort(dateStr: string): string {
 
 .empty-text {
   font-size: 32rpx;
-  color: #666;
+  color: #86868b;
   margin-bottom: 16rpx;
 }
 
 .empty-desc {
   font-size: 26rpx;
-  color: #ccc;
+  color: #d2d2d7;
 }
 </style>
