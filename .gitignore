@@ -25,6 +25,7 @@ venv/
 target/
 vendor/
 *.log
+*.pid
 coverage/
 .cache/
 tmp/
