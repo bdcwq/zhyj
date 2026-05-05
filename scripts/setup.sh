@@ -23,7 +23,6 @@ check_cmd() {
 info "Checking prerequisites..."
 check_cmd node
 check_cmd pnpm
-check_cmd docker
 
 # ── Create .env.local if missing ──────────────────────────────────
 if [ ! -f .env.local ]; then
@@ -39,25 +38,8 @@ pnpm install
 info "Generating Prisma client..."
 pnpm --filter @zhyj/db prisma generate
 
-# ── Start Docker services (Postgres + Redis) ──────────────────────
-info "Starting Docker services (PostgreSQL, Redis)..."
-docker compose up -d db redis
-
-info "Waiting for services to be healthy..."
-sleep 3
-for i in $(seq 1 30); do
-  if docker compose exec db pg_isready -U zhyj -d zhyj &>/dev/null && \
-     docker compose exec redis redis-cli ping &>/dev/null; then
-    break
-  fi
-  if [ "$i" -eq 30 ]; then
-    error "Timed out waiting for database/redis to become healthy"
-  fi
-  sleep 1
-done
-
-# ── Push database schema ──────────────────────────────────────────
-info "Pushing database schema..."
+# ── Push database schema (SQLite) ─────────────────────────────────
+info "Pushing database schema (SQLite)..."
 pnpm --filter @zhyj/db prisma db push --accept-data-loss
 
 # ── Seed database ─────────────────────────────────────────────────
@@ -71,7 +53,7 @@ pnpm build
 echo ""
 info "Setup complete! Run the following to start development:"
 echo ""
-echo "  pnpm dev              # Start web (Next.js) on http://localhost:3000"
-echo "  pnpm --filter @zhyj/mini-program dev:mp-weixin   # Start mini-program dev"
+echo "  ./scripts/dev.sh                        # Start web + mini-program"
+echo "  ./scripts/dev.sh --web                  # Start web only"
+echo "  ./scripts/dev.sh --mini-program         # Start mini-program only"
 echo ""
-info "Or use ./scripts/start.sh / ./scripts/stop.sh to manage services."

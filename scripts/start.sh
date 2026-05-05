@@ -17,37 +17,19 @@ error() { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 MODE="${1:---all}"
 
 usage() {
-  echo "Usage: $0 [--all|--web|--mini-program|--infra]"
+  echo "Usage: $0 [--all|--web|--mini-program]"
   echo ""
-  echo "  --all           Start infrastructure + web + mini-program (default)"
-  echo "  --web           Start infrastructure + Next.js web app"
-  echo "  --mini-program  Start infrastructure + mini-program dev server"
-  echo "  --infra         Start only Docker infrastructure (Postgres + Redis)"
+  echo "  --all           Start web + mini-program in background (default)"
+  echo "  --web           Start Next.js web app in background"
+  echo "  --mini-program  Start mini-program dev server in background"
   exit 0
 }
 
 case "$MODE" in
   --help|-h) usage ;;
-  --all|--web|--mini-program|--infra) ;;
+  --all|--web|--mini-program) ;;
   *) error "Unknown option: $MODE. Use --help for usage." ;;
 esac
-
-# ── Start Docker infrastructure ───────────────────────────────────
-start_infra() {
-  info "Starting Docker services (PostgreSQL, Redis)..."
-  docker compose up -d db redis
-
-  info "Waiting for services to be healthy..."
-  for i in $(seq 1 30); do
-    if docker compose exec db pg_isready -U zhyj -d zhyj &>/dev/null && \
-       docker compose exec redis redis-cli ping &>/dev/null; then
-      info "Infrastructure is ready."
-      return 0
-    fi
-    sleep 1
-  done
-  error "Timed out waiting for infrastructure to become healthy"
-}
 
 # ── Start web app ─────────────────────────────────────────────────
 start_web() {
@@ -68,8 +50,6 @@ start_mini_program() {
 }
 
 # ── Run ───────────────────────────────────────────────────────────
-start_infra
-
 case "$MODE" in
   --all)
     start_web
@@ -81,9 +61,6 @@ case "$MODE" in
   --mini-program)
     start_mini_program
     ;;
-  --infra)
-    # already started above
-    ;;
 esac
 
 echo ""
@@ -91,5 +68,4 @@ info "All requested services are running."
 info "Use ./scripts/stop.sh to stop them."
 echo ""
 
-# Keep script alive to forward signals to background processes
 wait
