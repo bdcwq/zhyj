@@ -58,6 +58,17 @@ export const MACHINE_ERRORS = {
 
 export type MachineErrorCode = (typeof MACHINE_ERRORS)[keyof typeof MACHINE_ERRORS];
 
+// ── Instructor error codes ──
+export const INSTRUCTOR_ERRORS = {
+  NOT_FOUND: "INSTRUCTOR_001",
+  VALIDATION_ERROR: "INSTRUCTOR_002",
+  CREATE_FAILED: "INSTRUCTOR_003",
+  UPDATE_FAILED: "INSTRUCTOR_004",
+  DELETE_FAILED: "INSTRUCTOR_005",
+} as const;
+
+export type InstructorErrorCode = (typeof INSTRUCTOR_ERRORS)[keyof typeof INSTRUCTOR_ERRORS];
+
 // ── Appointment statuses ──
 export const APPOINTMENT_STATUS = {
   BOOKED: "booked",

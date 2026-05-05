@@ -22,6 +22,7 @@ import {
   FileText,
   ArrowLeftRight,
   PartyPopper,
+  GraduationCap,
   LayoutDashboard,
   LogOut,
   X,
@@ -50,6 +51,7 @@ const managementItems = [
   { href: "/leaves", label: "请假管理", icon: FileText },
   { href: "/cross-store-report", label: "跨店报表", icon: ArrowLeftRight },
   { href: "/activities", label: "活动管理", icon: PartyPopper },
+  { href: "/instructors", label: "老师管理", icon: GraduationCap },
 ];
 
 /* ------------------------------------------------------------------ */

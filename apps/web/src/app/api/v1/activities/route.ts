@@ -141,13 +141,13 @@ export async function POST(request: NextRequest) {
 
     // Validate instructor belongs to store if provided
     if (instructorId) {
-      const staffStore = await prisma.staffStore.findFirst({
-        where: { staffId: instructorId, storeId: ctx.storeId },
+      const instructor = await prisma.instructor.findFirst({
+        where: { id: instructorId, storeId: ctx.storeId, deletedAt: null, status: "active" },
       });
-      if (!staffStore) {
+      if (!instructor) {
         return errorResponse(
           ACTIVITY_ERRORS.OPERATION_FAILED,
-          "该员工不属于当前门店",
+          "该老师不存在或不在当前门店",
           400
         );
       }

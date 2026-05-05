@@ -41,18 +41,10 @@ interface ActivityListResponse {
   };
 }
 
-interface StaffRecord {
+interface InstructorOption {
   id: string;
   name: string;
-  role: string;
-}
-
-interface StaffListResponse {
-  success: boolean;
-  data: {
-    records: StaffRecord[];
-    total: number;
-  };
+  specialty: string | null;
 }
 
 interface ModalForm {
@@ -184,8 +176,8 @@ function ActivityList() {
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  // ── Staff list for instructor dropdown ──
-  const [staffList, setStaffList] = useState<StaffRecord[]>([]);
+  // ── Instructor list for dropdown ──
+  const [instructorList, setInstructorList] = useState<InstructorOption[]>([]);
 
   const fetchActivities = useCallback(async () => {
     setListLoading(true);
@@ -222,16 +214,16 @@ function ActivityList() {
     fetchActivities();
   }, [fetchActivities]);
 
-  // Fetch staff list for instructor dropdown
+  // Fetch instructor list for dropdown
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/v1/staff?pageSize=100", {
+        const res = await fetch("/api/v1/instructors?simple=true", {
           credentials: "include",
         });
-        const json: StaffListResponse = await res.json();
+        const json = await res.json();
         if (json.success) {
-          setStaffList(json.data.records);
+          setInstructorList(json.data);
         }
       } catch {
         // ignore
@@ -694,7 +686,7 @@ function ActivityList() {
             </div>
             <div>
               <label htmlFor="activity-instructor" className="block text-sm font-medium text-foreground mb-1">
-                授课员工
+                授课老师
               </label>
               <select
                 id="activity-instructor"
@@ -703,8 +695,10 @@ function ActivityList() {
                 className="block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-apple-primary focus:ring-1 focus:ring-apple-primary transition-colors"
               >
                 <option value="">不指定</option>
-                {staffList.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+                {instructorList.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name}{i.specialty ? ` · ${i.specialty}` : ""}
+                  </option>
                 ))}
               </select>
             </div>

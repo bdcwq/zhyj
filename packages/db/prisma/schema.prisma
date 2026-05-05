@@ -38,6 +38,7 @@ model Store {
   leaves          Leave[]
   activities      Activity[]
   activityRegistrations ActivityRegistration[]
+  instructors      Instructor[]
 }
 
 // ── Room ───────────────────────────────────────────────────────────────
@@ -90,7 +91,6 @@ model Staff {
   attendances  Attendance[]
   leaves       Leave[]
   approvedLeaves Leave[] @relation("LeaveApprover")
-  activities   Activity[]
 }
 
 // ── StaffStore (junction) ─────────────────────────────────────────────
@@ -353,6 +353,27 @@ model Leave {
   @@index([startDate, endDate])
 }
 
+// ── Instructor ─────────────────────────────────────────────────────────
+model Instructor {
+  id        String   @id @default(cuid())
+  name      String
+  specialty String?   // 专长（如：八段锦、瑜伽、艾灸理疗）
+  bio       String?   // 个人简介
+  avatar    String?   // 头像 URL
+  phone     String?   // 联系电话
+  storeId   String
+  status    String    @default("active") // active, inactive
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  store     Store    @relation(fields: [storeId], references: [id])
+  activities Activity[]
+
+  @@index([storeId, status])
+  @@index([storeId, deletedAt])
+}
+
 // ── Activity ───────────────────────────────────────────────────────────
 model Activity {
   id             String   @id @default(cuid())
@@ -374,7 +395,7 @@ model Activity {
   deletedAt      DateTime?
 
   store         Store                  @relation(fields: [storeId], references: [id])
-  instructor    Staff?                 @relation(fields: [instructorId], references: [id])
+  instructor    Instructor?            @relation(fields: [instructorId], references: [id])
   registrations ActivityRegistration[]
 
   @@index([storeId, status])
